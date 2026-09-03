@@ -1,0 +1,2988 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Headrest Spill / Background Scene Lab v3.2</title>
+  <style>
+    :root {
+      --bg: #111;
+      --panel: #181818;
+      --panel2: #151a1f;
+      --border: #383838;
+      --text: #eee;
+      --muted: #aaa;
+      --accent: #9fd0ff;
+      --spill: #f2c36b;
+      --scene: #9fd0ff;
+      --ambient: #c7b5ff;
+      --sum: #9ff0bb;
+      --track: #555;
+      --fill: #cfcfcf;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      padding: 16px;
+    }
+
+    h1, h2, h3, p { margin-top: 0; }
+
+    .wide {
+      width: 100%;
+      max-width: 1480px;
+    }
+
+    .header {
+      text-align: center;
+      position: relative;
+    }
+
+    .header h1 {
+      font-size: 20px;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .labSectionTitle {
+      width: 100%;
+      max-width: 1480px;
+      margin: 16px 0 -2px;
+      color: #cfe7ff;
+      font-size: 16px;
+    }
+
+    .demoContentSlots {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .demoContentSlot {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #141414;
+    }
+    .demoContentSlot strong { min-width: 126px; }
+    .demoContentSlot .fileName { flex: 1; }
+    @media (max-width: 680px) { .demoContentSlots { grid-template-columns: 1fr; } }
+
+    .about {
+      background: var(--panel2);
+      border: 1px solid #36506a;
+      border-radius: 10px;
+      padding: 11px 14px;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .about strong { color: #cfe7ff; }
+
+    .sourceGrid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .sourceCard,
+    .controlBox,
+    .readoutBox,
+    .scopeBox {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+    }
+
+    .sourceCard.spill { border-color: rgba(242,195,107,0.55); }
+    .sourceCard.scene { border-color: rgba(159,208,255,0.55); }
+    .sourceCard.ambient { border-color: rgba(199,181,255,0.55); }
+
+    .sourceTitle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .sourceTitle h2 {
+      font-size: 16px;
+      margin: 0;
+    }
+
+    .spill .sourceTitle h2 { color: var(--spill); }
+    .scene .sourceTitle h2 { color: var(--scene); }
+    .ambient .sourceTitle h2 { color: var(--ambient); }
+
+    .fileRow,
+    .buttonRow,
+    .transportRow {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    button,
+    .fileButton {
+      padding: 8px 12px;
+      font-size: 14px;
+      border-radius: 9px;
+      border: 1px solid #555;
+      background: #242424;
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    button:hover:not(:disabled),
+    .fileButton:hover { background: #303030; }
+
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    button.active {
+      border-color: #ff9f2a;
+      color: #ffd39b;
+      box-shadow: 0 0 0 1px rgba(255,159,42,0.28);
+    }
+
+    .fileName {
+      color: var(--muted);
+      min-width: 120px;
+      max-width: 310px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .controlRow {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .controlRow label,
+    .controlRow .value {
+      font-size: 14px;
+    }
+    .controlRow input[type="range"] { grid-column: 1 / -1; min-width: 0; }
+
+    .value {
+      font-family: "SFMono-Regular", Consolas, monospace;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 8px;
+      border-radius: 999px;
+      appearance: none;
+      -webkit-appearance: none;
+      background: var(--track);
+      cursor: pointer;
+    }
+    #programSelect { background:#17120a; color:#ffd39b; border:1px solid #d59b37; border-radius:8px; padding:7px 10px; font-size:16px; }
+    #programPrev, #programNext { border-color:#d59b37; color:#ffd39b; }
+
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #f2f2f2;
+      border: 1px solid #888;
+    }
+
+    .metricGrid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .metric {
+      background: #141414;
+      border: 1px solid #303030;
+      border-radius: 9px;
+      padding: 10px;
+      min-height: 88px;
+    }
+
+    .metric .label {
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 7px;
+    }
+
+    .metric .number {
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 24px;
+      line-height: 1.1;
+    }
+
+    .metric.spillMetric .number { color: var(--spill); }
+    .metric.sceneMetric .number { color: var(--scene); }
+    .metric.ambientMetric .number { color: var(--ambient); }
+    .metric.sumMetric .number { color: var(--sum); }
+
+    .metric.deltaMetric {
+      border-color: #5b5b5b;
+    }
+
+    .metric.deltaMetric .number {
+      font-size: 30px;
+    }
+
+    .smallNote {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+      margin-top: 7px;
+    }
+
+    /* EN: Make loss of digital peak headroom unambiguous in Lab diagnostics. */
+    .smallNote.warning {
+      color: #ff6b6b;
+      font-weight: 600;
+    }
+
+    .scopeHeader {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .scopeHeader h2 {
+      font-size: 14px;
+      margin: 0;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 300px;
+      background: #000;
+      border: 1px solid #303030;
+    }
+
+    .cabinTestBox {
+      margin-top: 14px;
+    }
+
+    .cabinTestHeader {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .cabinTestHeader h2 {
+      font-size: 14px;
+      margin: 0;
+    }
+
+    #cabinTest {
+      height: auto;
+    }
+
+    .cabinVisualGrid {
+      display: grid;
+      grid-template-columns: 190px minmax(380px, 560px) 190px;
+      gap: 10px;
+      align-items: stretch;
+      justify-content: center;
+    }
+
+    .listenerCard {
+      background: #111;
+      border: 1px solid #383838;
+      border-radius: 9px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .listenerCard.active { border-color: #ff9f2a; box-shadow: 0 0 0 1px rgba(255,159,42,.28); }
+    .listenerCard h3 { font-size: 14px; margin: 0; }
+    .listenerValue { display: flex; justify-content: space-between; gap: 6px; color: var(--muted); font-size: 12px; }
+    .listenerValue strong { color: var(--text); font-family: "SFMono-Regular", Consolas, monospace; font-weight: 500; white-space: nowrap; }
+    .listenerCard button { margin-top: auto; width: 100%; }
+
+    .status {
+      background: #141414;
+      border: 1px solid var(--border);
+      padding: 10px 12px;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 12px;
+      color: #ccc;
+      white-space: pre-wrap;
+    }
+
+    .footer {
+      color: #777;
+      font-size: 12px;
+      text-align: right;
+    }
+
+    .modeToggle {
+      position: absolute;
+      right: 0;
+      top: 0;
+      font-size: 12px;
+      padding: 6px 9px;
+    }
+
+    body.demoMode .labOnly {
+      display: none !important;
+    }
+    /* EN: The shared demo stage has no duplicate header in either view mode. */
+    .cabinTestHeader { display: none; }
+
+    .demoFooter {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+    .demoFooter .footer { width: auto; }
+    body.demoMode .cabinTestBox { order: 1; }
+    body.demoMode .demoFooter { order: 2; justify-content: space-between; }
+    body:not(.demoMode) .demoFooter { justify-content: flex-end; }
+    body:not(.demoMode) .demoFooter .footer { display: none; }
+    body.demoMode #viewModeToggle {
+      border-color: #555;
+      box-shadow: none;
+      color: #ddd;
+    }
+    body:not(.demoMode) #viewModeToggle {
+      min-height: 46px;
+      padding: 10px 18px;
+      font-size: 16px;
+      font-weight: 700;
+      border-color: #45c9c3;
+      color: #bff5f1;
+      box-shadow: 0 0 0 1px rgba(69,201,195,.22);
+    }
+
+    .demoTransport {
+      justify-content: center;
+      margin: 0 0 10px;
+    }
+
+    .demoTransport #startBoth {
+      min-width: 112px;
+      font-weight: 600;
+      border-color: #d59b37;
+      color: #ffd39b;
+    }
+
+    .modeToggle {
+      position: static;
+      font-size: 11px;
+      padding: 5px 8px;
+      white-space: nowrap;
+    }
+
+    .cabinVisualGrid { position: relative; }
+
+    .miniLevelScope {
+      position: absolute;
+      left: 50%;
+      bottom: 10px;
+      transform: translateX(-50%);
+      width: 180px;
+      height: 58px;
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 6px;
+      overflow: hidden;
+      background: rgba(0,0,0,.70);
+      pointer-events: none;
+    }
+
+    .miniLevelScope canvas {
+      width: 180px;
+      height: 58px;
+      border: 0;
+      background: transparent;
+    }
+
+    /* EN: Lab keeps the same cabin composition; its extra diagnostics remain above and below it. */
+    body.demoMode .listenerDetails,
+    body:not(.demoMode) .listenerDetails { display: none !important; }
+    body.demoMode .cabinVisualGrid,
+    body:not(.demoMode) .cabinVisualGrid {
+      grid-template-columns: minmax(420px, 760px);
+    }
+    body.demoMode #cabinTest,
+    body:not(.demoMode) #cabinTest { grid-column: 1; }
+
+    .demoListenerButton {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 4;
+      min-width: 104px;
+      padding: 9px 10px;
+      background: rgba(18,18,18,.88);
+    }
+    .demoListenerA { left: 10px; }
+    .demoListenerB { right: 10px; }
+
+    .demoVolumeControl {
+      position: absolute;
+      right: 202px;
+      bottom: 12px;
+      z-index: 5;
+      width: 46px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      padding: 5px 4px;
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 7px;
+      background: rgba(0,0,0,.70);
+    }
+    .demoVolStep {
+      width: 36px;
+      padding: 3px 2px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .demoVolumeSegments {
+      width: 18px;
+      height: 42px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .demoVolumeSegments span {
+      display: block;
+      height: 4px;
+      border-radius: 2px;
+      background: #333;
+      border: 1px solid #4b4b4b;
+      transition: background .08s, opacity .08s;
+    }
+    .demoVolumeSegments span.on {
+      background: #d8d8d8;
+      border-color: #efefef;
+    }
+
+    /* EN: Protection activity is a state cue, not an additional meter. */
+    .demoVolumeControl.protectionActive {
+      border-color: #ff6b6b;
+      background: rgba(105, 26, 26, .58);
+    }
+    .demoVolumeControl.protectionActive .demoVolumeSegments span.on {
+      background: #ff6b6b;
+      border-color: #ffaaa0;
+    }
+    .demoDuck {
+      width: 48px;
+      padding: 5px 3px;
+      font-size: 11px;
+    }
+    .demoDuck.active {
+      border-color: #ff9f2a;
+      color: #ffd39b;
+    }
+    .mutedBadge {
+      display: none;
+      white-space: nowrap;
+      font-size: 11px;
+      font-weight: 700;
+      color: #ffd39b;
+      letter-spacing: .04em;
+      margin-left: 2px;
+    }
+    .mutedBadge.active {
+      display: block;
+      animation: muteBlink .85s steps(2, start) infinite;
+    }
+    @keyframes muteBlink { 50% { opacity: .25; } }
+
+    .miniLevelScope {
+      left: auto;
+      right: 12px;
+      bottom: 12px;
+      transform: none;
+    }
+
+    body:not(.demoMode) .demoVolumeControl,
+    body:not(.demoMode) .demoListenerButton { display: none; }
+
+
+    .demoTransport {
+      align-items: center;
+    }
+
+    .demoOutputControl {
+      position: relative;
+      display: flex;
+      align-items: stretch;
+      gap: 8px;
+      height: 116px;
+      margin-left: 14px;
+    }
+
+    .demoOutputControl .demoVolumeControl {
+      position: static;
+      width: 66px;
+      height: 116px;
+      padding: 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      gap: 4px;
+      border: 1px solid rgba(255,255,255,.16);
+      border-radius: 8px;
+      background: rgba(0,0,0,.58);
+    }
+
+    .demoOutputControl .demoVolStep {
+      width: 54px;
+      min-height: 29px;
+      padding: 5px 2px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .demoOutputControl .demoVolumeSegments {
+      width: 24px;
+      height: 42px;
+    }
+
+    .demoOutputControl .demoVolumeSegments span {
+      height: 5px;
+    }
+
+    .demoOutputControl .demoDuck {
+      position: static;
+      width: 126px;
+      height: 116px;
+      padding: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      border-color: #666;
+      background: #242424;
+    }
+
+    .demoOutputControl .demoDuck.active {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 12;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      border-color: rgba(255,211,155,.32);
+      background: rgba(0,0,0,.50);
+      color: #ffd39b;
+      font-size: 19px;
+      letter-spacing: .035em;
+      animation: none;
+    }
+    .demoDuckIcon {
+      width: 96px;
+      height: 96px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    /* EN: Hide the underlying live VOL meter so the half-mute overlay stays visually constant. */
+    .demoOutputControl:has(.demoDuck.active) .demoVolumeControl { visibility: hidden; }
+    .demoDuck.active .demoDuckIcon { animation: mutedIconPulse 1.6s ease-in-out infinite; }
+    @keyframes mutedIconPulse { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
+
+    .demoOutputControl .mutedBadge {
+      display: none !important;
+    }
+
+    body:not(.demoMode) .demoOutputControl { display: flex; }
+
+    body.demoMode .miniLevelScope {
+      position: relative;
+      left: auto;
+      right: auto;
+      bottom: auto;
+      transform: none;
+      grid-column: 1;
+      justify-self: center;
+      width: 100%;
+      max-width: 760px;
+      height: 110px;
+      margin-top: -24px;
+      border: 0;
+      border-top: 1px solid rgba(255,255,255,.10);
+      border-radius: 0;
+      background: rgba(0,0,0,.42);
+      pointer-events: none;
+    }
+
+    body.demoMode .miniLevelScope canvas {
+      width: 100%;
+      height: 110px;
+      border: 0;
+      background: transparent;
+    }
+
+    body.demoMode .demoListenerButton {
+      top: 42%;
+    }
+
+
+    /* EN: Lock the output-control footprint so mute/unmute never shifts the transport row. */
+    .demoOutputControl {
+      width: 200px;
+      min-width: 200px;
+      flex: 0 0 200px;
+    }
+
+    /* EN: Finer volume marks read as a meter rather than a stack of blocks. */
+    .demoOutputControl .demoVolumeSegments span {
+      height: 3px;
+    }
+
+    /* EN: Program selector follows the dark demo palette instead of becoming the brightest element. */
+    #cabinProgramSelect {
+      color: #ededed;
+      background: #242424;
+      border: 1px solid #666;
+      border-radius: 5px;
+      padding: 5px 30px 5px 9px;
+      color-scheme: dark;
+    }
+    #cabinProgramSelect option {
+      color: #ededed;
+      background: #242424;
+    }
+
+    /* EN: Normal mute keeps its full-size column; muted state expands left over volume without reflow. */
+    .demoOutputControl .demoDuck {
+      flex: 0 0 126px;
+    }
+    .demoOutputControl .demoDuck.active {
+      left: 0;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      width: auto;
+      height: auto;
+      animation: none;
+    }
+
+    @keyframes demoMuteBreath {
+      from { background: rgba(72, 43, 12, .56); }
+      to   { background: rgba(72, 43, 12, .88); }
+    }
+
+    @media (max-width: 900px) {
+      .sourceGrid,
+      .metricGrid { grid-template-columns: 1fr; }
+      .controlRow { grid-template-columns: 1fr; }
+      .value { text-align: left; }
+      .cabinVisualGrid { grid-template-columns: 170px minmax(320px, 1fr) 170px; }
+    }
+    @media (max-width: 680px) { .cabinVisualGrid { grid-template-columns: 1fr; } }
+  
+
+    /* v2.0: generic UI state is teal; A/B/S/C retain signal identity colours. */
+    body.demoMode #startBoth,
+    body.demoMode #cabinProgramSelect:focus,
+    body.demoMode .demoVolStep:focus {
+      border-color: #45c9c3;
+      box-shadow: 0 0 0 1px rgba(69,201,195,.22);
+    }
+
+    body.demoMode #startBoth { color: #bff5f1; }
+
+    body.demoMode #cabinProgramSelect {
+      background: #242829;
+      color: #e8eeee;
+      border-color: #4c5b5c;
+    }
+
+    body.demoMode .miniLevelScope {
+      position: relative;
+      padding-top: 42px;
+      height: 152px;
+      max-width: 760px;
+      overflow: visible;
+    }
+
+    body.demoMode .miniLevelScope canvas {
+      height: 110px;
+    }
+
+    body.demoMode .miniLevelScope .demoListenerButton {
+      position: absolute;
+      top: 5px;
+      bottom: auto;
+      transform: translateX(-50%);
+      min-width: 112px;
+      padding: 7px 10px;
+      font-size: 12px;
+      z-index: 8;
+    }
+
+    body.demoMode .miniLevelScope #listenA { left: 43%; right: auto; }
+    body.demoMode .miniLevelScope #listenB { left: 56%; right: auto; }
+
+    /* EN: Feelness presets remain beside Listener A because they affect Program A protection only. */
+    .demoFeelnessControl {
+      position: absolute;
+      top: clamp(46px, 8vw, 112px);
+      left: clamp(10px, 2vw, 28px);
+      z-index: 8;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 5px;
+      width: 110px;
+      padding: 9px;
+      border: 1px solid rgba(242,195,107,.35);
+      border-radius: 9px;
+      background: rgba(28, 22, 12, .84);
+      pointer-events: auto;
+    }
+    .demoFeelnessControl .feelnessTitle {
+      color: #f2c36b;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-align: center;
+    }
+    .demoFeelnessControl button {
+      min-width: 0;
+      width: 100%;
+      padding: 7px 5px;
+      font-size: 13px;
+      border-color: #6b5b36;
+      color: #e7d7a8;
+    }
+    .demoFeelnessControl button.active {
+      border-color: #f2c36b;
+      color: #f2c36b;
+      background: #352b18;
+    }
+    body.demoMode .miniLevelScope .demoListenerButton { pointer-events: auto; }
+
+    /* EN: Cabin-noise conditions sit on the dashboard, separate from Program A controls. */
+    .demoSpeedControl {
+      position: absolute;
+      top: clamp(46px, 8vw, 112px);
+      /* EN: Pin the selector to the canvas edge, not the cabin drawing. */
+      right: clamp(10px, 2vw, 28px);
+      z-index: 7;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 5px;
+      width: 110px;
+      padding: 9px;
+      border: 1px solid rgba(199,181,255,.35);
+      border-radius: 9px;
+      background: rgba(12, 20, 24, .84);
+      pointer-events: auto;
+    }
+    .demoSpeedControl .speedTitle {
+      color: #c7b5ff;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-align: center;
+    }
+    .demoSpeedControl button {
+      padding: 7px 5px;
+      font-size: 13px;
+      border-color: #48565e;
+    }
+    .demoSpeedControl button.active {
+      color: #c7b5ff;
+      border-color: #c7b5ff;
+      background: #292238;
+    }
+    body:not(.demoMode) .demoSpeedControl { display: flex; }
+
+    body.demoMode #listenA.active {
+      border-color: #f2c36b;
+      color: #f2c36b;
+      box-shadow: 0 0 0 1px rgba(242,195,107,.16);
+    }
+
+    body.demoMode #listenB.active {
+      border-color: #ff9f2a;
+      color: #ffb45a;
+      box-shadow: 0 0 0 1px rgba(255,159,42,.16);
+    }
+
+    /* EN: The Lab reuses the demo's cabin layout; diagnostics live outside this canvas module. */
+    body:not(.demoMode) .miniLevelScope {
+      position: relative;
+      left: auto;
+      right: auto;
+      bottom: auto;
+      transform: none;
+      grid-column: 1;
+      justify-self: center;
+      width: 100%;
+      max-width: 760px;
+      height: 110px;
+      margin-top: -24px;
+      overflow: visible;
+      border: 0;
+      border-top: 1px solid rgba(255,255,255,.10);
+      border-radius: 0;
+      background: rgba(0,0,0,.42);
+      pointer-events: none;
+    }
+    body:not(.demoMode) .miniLevelScope canvas { width: 100%; height: 110px; border: 0; background: transparent; }
+    body:not(.demoMode) .miniLevelScope .demoListenerButton {
+      display: block;
+      position: absolute;
+      top: 5px;
+      transform: translateX(-50%);
+      pointer-events: auto;
+    }
+    body:not(.demoMode) .miniLevelScope #listenA { left: 43%; }
+    body:not(.demoMode) .miniLevelScope #listenB { left: 56%; }
+    /* EN: Listener routing moves to the front dashboard; seat labels are intentionally omitted. */
+    body.demoMode .cabinVisualGrid .demoListenerButton,
+    body:not(.demoMode) .cabinVisualGrid .demoListenerButton {
+      display: block;
+      position: absolute;
+      top: 12px;
+      right: auto;
+      bottom: auto;
+      transform: none;
+      min-width: 124px;
+      padding: 8px 11px;
+      font-size: 13px;
+      z-index: 8;
+      pointer-events: auto;
+    }
+    body.demoMode .cabinVisualGrid #listenA,
+    body:not(.demoMode) .cabinVisualGrid #listenA { left: calc(50% - 138px); }
+    body.demoMode .cabinVisualGrid #listenB,
+    body:not(.demoMode) .cabinVisualGrid #listenB { left: calc(50% + 14px); }
+    /* EN: Lab keeps the same physical VOL control as the shared demo stage. */
+    body:not(.demoMode) .demoOutputControl .demoVolumeControl { display: flex; }
+  </style>
+</head>
+<body class="demoMode">
+  <header class="header wide">
+    <h1>Headrest listening demo</h1>
+    <div class="subtitle">Choose cabin noise, then compare Listener A and Listener B.</div>
+  </header>
+
+
+
+<section class="scopeBox cabinTestBox wide">
+    <div class="cabinTestHeader">
+      <h2>Cabin demo for two listeners</h2>
+      <div id="cabinTestReadout" class="smallNote" style="margin:0;">Stopped · --</div>
+    </div>
+    <div class="transportRow demoTransport">
+      <button id="startBoth" disabled>▶ Play</button>
+      <button id="stopBoth" disabled style="display:none;">Stop</button>
+      <button id="restartBoth" class="labOnly" disabled style="display:none;">Restart / sync</button>
+      <span class="smallNote" style="margin:0 0 0 8px;">Program A:</span>
+      <select id="cabinProgramSelect" aria-label="Program A demo content">
+        <option value="builtin" selected>Procedural Bach BWV 846</option>
+        <option value="music" disabled>Music demo · not loaded</option>
+        <option value="voice" disabled>Voice / narration · not loaded</option>
+      </select>
+      <strong id="cabinProgramSource" style="display:none;">Procedural Bach BWV 846</strong>
+      <div class="demoOutputControl" aria-label="Demo output controls">
+        <div id="demoVolumeControl" class="demoVolumeControl" aria-label="Demo output volume" aria-live="polite">
+          <button id="demoVolUp" class="demoVolStep" aria-label="Volume up 6 dB">VOL +</button>
+          <div id="demoVolumeSegments" class="demoVolumeSegments" aria-hidden="true">
+            <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+          </div>
+          <button id="demoVolDown" class="demoVolStep" aria-label="Volume down 6 dB">VOL −</button>
+        </div>
+        <button id="demoDuck" class="demoDuck" aria-pressed="false">Mute demo</button>
+        <div id="mutedBadge" class="mutedBadge" aria-hidden="true"></div>
+      </div>
+    </div>
+    <div class="cabinVisualGrid">
+      <aside id="listenerACard" class="listenerCard listenerDetails">
+        <h3>Listener A</h3>
+        <div class="smallNote" style="margin:0;">Direct intended programme</div>
+        <div class="listenerValue"><span>A content</span><strong id="listenerAContent">--</strong></div>
+        <div class="listenerValue"><span>Shared Scene</span><strong id="listenerAScene">--</strong></div>
+        <div class="listenerValue"><span>Ambient</span><strong id="listenerAAmbient">--</strong></div>
+        <div class="listenerValue"><span>Total, estimated</span><strong id="listenerATotal">--</strong></div>
+      </aside>
+      <div class="demoSpeedControl" role="group" aria-label="Cabin noise condition">
+        <div class="speedTitle">CABIN NOISE</div>
+        <button data-cabin-speed="100">100 km/h</button>
+        <button data-cabin-speed="50">50 km/h</button>
+        <button data-cabin-speed="0" class="active">0 km/h</button>
+      </div>
+      <canvas id="cabinTest" width="1200" height="420"></canvas>
+      <div class="demoFeelnessControl" role="group" aria-label="Program A bass feelness">
+        <div class="feelnessTitle">BASS FEELNESS · A</div>
+        <button data-feelness="light">Light</button>
+        <button data-feelness="normal" class="active">Normal</button>
+        <button data-feelness="heavy">Heavy</button>
+      </div>
+      <button id="listenA" class="demoListenerButton demoListenerA">Listen as A</button>
+      <button id="listenB" class="demoListenerButton demoListenerB active">Listening as B</button>
+      <div class="miniLevelScope" aria-label="Live listener levels">
+        <canvas id="scope" width="760" height="110"></canvas>
+      </div>
+      <aside id="listenerBCard" class="listenerCard listenerDetails active">
+        <h3>Listener B</h3>
+        <div class="smallNote" style="margin:0;">A content after A → B transfer</div>
+        <div class="listenerValue"><span>A content at B</span><strong id="listenerBContent">--</strong></div>
+        <div class="listenerValue"><span>A → B transfer</span><strong id="listenerBTransfer">−15.0 dB</strong></div>
+        <div class="listenerValue"><span>Shared Scene</span><strong id="listenerBScene">--</strong></div>
+        <div class="listenerValue"><span>Ambient</span><strong id="listenerBAmbient">--</strong></div>
+        <div class="listenerValue"><span>Total, estimated</span><strong id="listenerBTotal">--</strong></div>
+      </aside>
+    </div>
+  </section>
+
+    <div class="demoFooter wide">
+    <button id="viewModeToggle" class="modeToggle" aria-pressed="true">Show lab controls</button>
+    <div class="footer">Headrest Spill / Background Scene Lab · v3.2</div>
+  </div>
+
+  <h2 class="labSectionTitle labOnly">Demo settings</h2>
+  <section class="controlBox wide labOnly">
+    <div class="scopeHeader"><h2>Load demo content</h2><span class="smallNote">Loaded slots become choices in the demo selector.</span></div>
+    <div class="demoContentSlots">
+      <div class="demoContentSlot">
+        <strong>Music demo</strong>
+        <label class="fileButton" for="demoMusicFile">Choose file</label>
+        <span id="demoMusicFileName" class="fileName">Not loaded</span>
+        <input id="demoMusicFile" type="file" accept="audio/*" hidden />
+      </div>
+      <div class="demoContentSlot">
+        <strong>Voice / narration</strong>
+        <label class="fileButton" for="demoVoiceFile">Choose file</label>
+        <span id="demoVoiceFileName" class="fileName">Not loaded</span>
+        <input id="demoVoiceFile" type="file" accept="audio/*" hidden />
+      </div>
+    </div>
+  </section>
+  <section class="sourceGrid wide labOnly">
+    <div class="sourceCard spill">
+      <div class="sourceTitle">
+        <h2>Program A</h2>
+        <span id="spillState">no file</span>
+      </div>
+      <div class="buttonRow" style="margin-bottom:10px;">
+        <span class="smallNote" style="margin:0 6px 0 0;">Program A source</span>
+        <button id="spillSourceBuiltin" class="active">Built-in music</button>
+        <button id="spillSourceFile">Audio file</button>
+      </div>
+      <div id="spillBuiltinRow" class="smallNote" style="margin:0 0 10px 0;">Built-in: Procedural Music Lab v2.0 · Bach BWV 846 · ready</div>
+      <div class="fileRow" id="spillFileRow" style="display:none;">
+        <label class="fileButton" for="spillFile">Select A-content file</label>
+        <span id="spillFileName" class="fileName">No file selected</span>
+        <input id="spillFile" type="file" accept="audio/*" hidden />
+      </div>
+      <div class="controlRow">
+        <label for="programReferenceTrim">Content reference level</label>
+        <input id="programReferenceTrim" type="range" min="-24" max="24" step="0.5" value="4" />
+        <div id="programReferenceTrimValue" class="value">+4.0 dB</div>
+      </div>
+      <div class="controlRow labOnly">
+        <label for="protectionCeiling">Program A bass protection at Demo VOL 0 dB</label>
+        <input id="protectionCeiling" type="range" min="-40" max="-3" step="0.5" value="-18" />
+        <div id="protectionCeilingValue" class="value">−18.0 dBFS</div>
+      </div>
+      <div id="protectionStatus" class="smallNote labOnly">Protection: not started</div>
+      <div class="buttonRow">
+        <span class="smallNote" style="margin:0 6px 0 0;">Bass feelness</span>
+        <button data-feelness="light">Light</button>
+        <button data-feelness="normal" class="active">Normal</button>
+        <button data-feelness="heavy">Heavy</button>
+      </div>
+      <div id="protectionDemoState" class="smallNote">Tactile feelness control: Normal</div>
+      <div id="programPreMonitor" class="smallNote labOnly">Content pre-protection: RMS -- · 1 s peak --</div>
+      <div class="controlRow">
+        <label for="spillGain">A → B transfer</label>
+        <input id="spillGain" type="range" min="-40" max="0" step="0.5" value="-15" />
+        <div id="spillGainValue" class="value">−15.0 dB</div>
+      </div>
+      <div class="buttonRow" style="margin-top:10px;">
+        <button id="spillMute">Mute A content</button>
+        <button id="spillSolo">Solo A content</button>
+      </div>
+      <div id="spillAnalysis" class="smallNote">Program A K, 3 s: -- · measured after Content reference level</div>
+    </div>
+
+    <div class="sourceCard scene">
+      <div class="sourceTitle">
+        <h2>Scene bed</h2>
+        <span id="sceneState">brown · generated on start</span>
+      </div>
+      <div class="buttonRow" style="margin-bottom:10px;">
+        <span class="smallNote" style="margin:0 6px 0 0;">Scene source</span>
+        <button id="sceneSourceFile">File</button>
+        <button id="sceneSourcePink">Pink noise</button>
+        <button id="sceneSourceBrown" class="active">Brown noise 50 Hz HP</button>
+      </div>
+      <div class="fileRow" id="sceneFileRow" style="display:none;">
+        <label class="fileButton" for="sceneFile">Select scene file</label>
+        <span id="sceneFileName" class="fileName">No file selected</span>
+        <input id="sceneFile" type="file" accept="audio/*" hidden />
+      </div>
+      <div class="controlRow">
+        <label for="sceneGain">Scene gain</label>
+        <input id="sceneGain" type="range" min="-50" max="12" step="0.5" value="-24" />
+        <div id="sceneGainValue" class="value">−24.0 dB</div>
+      </div>
+      <div class="buttonRow" style="margin-top:10px;">
+        <button id="sceneMute">Mute Scene bed</button>
+        <button id="sceneSolo">Solo Scene bed</button>
+      </div>
+      <div id="sceneAnalysis" class="smallNote">Source K/LUFS-style estimate: --</div>
+    </div>
+
+    <div class="sourceCard ambient">
+      <div class="sourceTitle">
+        <h2>Cabin ambient</h2>
+        <span id="ambientState">brown · generated on start</span>
+      </div>
+      <div class="buttonRow" style="margin-bottom:10px;">
+        <span class="smallNote" style="margin:0 6px 0 0;">Ambient source</span>
+        <button id="ambientSourceBrown" class="active">Generated brown 20 Hz HP</button>
+        <button id="ambientSourceFile">File</button>
+      </div>
+      <div class="buttonRow" style="margin-bottom:10px;">
+        <span class="smallNote" style="margin:0 6px 0 0;">Cabin tone</span>
+        <button data-ambient-preset="full">Full</button>
+        <button data-ambient-preset="soft">Soft 2 kHz</button>
+        <button data-ambient-preset="warm" class="active">Warm 800 Hz</button>
+        <button data-ambient-preset="hvac">HVAC band</button>
+      </div>
+      <div class="fileRow" id="ambientFileRow" style="display:none;">
+        <label class="fileButton" for="ambientFile">Select ambient file</label>
+        <span id="ambientFileName" class="fileName">No file selected</span>
+        <input id="ambientFile" type="file" accept="audio/*" hidden />
+      </div>
+      <div class="smallNote">Generated brown is the default cabin-noise baseline. 20 Hz high-pass removes DC/subsonic drift while keeping more low-frequency rumble than the 50 Hz HP Scene brown.</div>
+      <div class="controlRow">
+        <label for="ambientGain">Ambient gain</label>
+        <input id="ambientGain" type="range" min="-50" max="12" step="0.5" value="-24" />
+        <div id="ambientGainValue" class="value">−24.0 dB</div>
+      </div>
+      <div class="buttonRow" style="margin-top:10px;">
+        <button id="ambientMute">Mute Ambient</button>
+        <button id="ambientSolo">Solo Ambient</button>
+      </div>
+      <div id="ambientAnalysis" class="smallNote">Generated ambient K/LUFS-style estimate: --</div>
+    </div>
+  </section>
+
+  <section class="controlBox wide labOnly">
+    <div class="transportRow">
+      <span class="smallNote" style="margin:0;">Public demo: Built-in Bach is ready. Use the Music demo or Voice / narration file controls above to add your own content.</span>
+    </div>
+    <div class="controlRow">
+      <label for="monitorGain">Monitor output gain</label>
+      <input id="monitorGain" type="range" min="-40" max="0" step="0.5" value="-12" />
+      <div id="monitorGainValue" class="value">−12.0 dB</div>
+    </div>
+    <div class="smallNote">Demo VOL is after the measurement bus. It changes listening level only; it does not change the A content at B / Scene / Ambient / ΔLU readouts.</div>
+    <div id="monitorPostMonitor" class="smallNote">Demo VOL post-gain: RMS -- · 1 s peak --</div>
+  </section>
+
+  <h2 class="labSectionTitle labOnly">Lab diagnostics</h2>
+  <section class="readoutBox wide labOnly">
+    <div class="metricGrid">
+      <div class="metric spillMetric">
+        <div class="label">A content at B · live K, 3 s</div>
+        <div id="spillLufs" class="number">--</div>
+        <div class="smallNote">Program A K + current A → B transfer</div>
+      </div>
+      <div class="metric sceneMetric">
+        <div class="label">Rendered Scene</div>
+        <div id="sceneLufs" class="number">--</div>
+        <div class="smallNote">source estimate + scene gain</div>
+      </div>
+      <div class="metric ambientMetric">
+        <div class="label">Rendered Ambient</div>
+        <div id="ambientLufs" class="number">--</div>
+        <div class="smallNote">generated source estimate + ambient gain</div>
+      </div>
+      <div class="metric deltaMetric">
+        <div class="label">Scene − A content at B</div>
+        <div id="deltaLu" class="number">--</div>
+        <div class="smallNote">uses the current A → B transfer slider</div>
+      </div>
+      <div class="metric sumMetric">
+        <div class="label">Live SUM K, 3 s</div>
+        <div id="sumLufs" class="number">--</div>
+        <div class="smallNote">measured from the actual summed signal</div>
+      </div>
+    </div>
+  </section>
+
+  
+
+  
+  <section class="about wide labOnly">
+    <strong>Research focus:</strong> compare the preferred loudness difference between leaked headrest program content and a shared background scene.
+    The initial headrest-to-neighbour attenuation is set to <strong>−15 dB</strong>. This prototype studies content-dependent ΔLU while adding a separate simulated cabin-noise layer. Ambient is an environmental condition; Scene is intentionally added background content. Absolute SPL calibration and adaptive control are still intentionally omitted.
+  </section>
+
+  <pre id="status" class="status wide labOnly">Choose Program A and a Scene bed. Cabin ambient defaults to generated warm brown noise (800 Hz).</pre>
+  <div class="footer wide labOnly">Experimental K/LUFS-style estimates; not certified BS.1770 / EBU R128. (c) Jukka Linjama 2026</div>
+
+<script type="module">
+  // EN: Spill v3.2 imports the canonical engine; do not maintain a second Program A copy here.
+  import { createProgramSource } from './program-source.js?v=2.0.1';
+  import { createLowBandProtectionChain } from './low-band-protection-chain.js';
+
+  // ============================================================================
+  // Headrest Spill / Background Scene Lab v3.2
+  // Derived conceptually from Tactile Loudness Meter v6.0.
+  // EN: Three audible layers are intentionally separate: Spill, Scene, and Ambient.
+  // EN: Ambient represents the environment; Scene represents intentionally added background content.
+  // ============================================================================
+
+  const els = {
+    spillFile: document.getElementById('spillFile'),
+    spillFileRow: document.getElementById('spillFileRow'),
+    spillBuiltinRow: document.getElementById('spillBuiltinRow'),
+    spillSourceBuiltin: document.getElementById('spillSourceBuiltin'),
+    spillSourceFile: document.getElementById('spillSourceFile'),
+    programReferenceTrim: document.getElementById('programReferenceTrim'),
+    programReferenceTrimValue: document.getElementById('programReferenceTrimValue'),
+    sceneFile: document.getElementById('sceneFile'),
+    sceneFileRow: document.getElementById('sceneFileRow'),
+    sceneSourceFile: document.getElementById('sceneSourceFile'),
+    sceneSourcePink: document.getElementById('sceneSourcePink'),
+    sceneSourceBrown: document.getElementById('sceneSourceBrown'),
+    ambientFile: document.getElementById('ambientFile'),
+    ambientFileRow: document.getElementById('ambientFileRow'),
+    ambientFileName: document.getElementById('ambientFileName'),
+    ambientSourceBrown: document.getElementById('ambientSourceBrown'),
+    ambientSourceFile: document.getElementById('ambientSourceFile'),
+    ambientState: document.getElementById('ambientState'),
+    ambientGain: document.getElementById('ambientGain'),
+    ambientGainValue: document.getElementById('ambientGainValue'),
+    ambientMute: document.getElementById('ambientMute'),
+    ambientSolo: document.getElementById('ambientSolo'),
+    ambientAnalysis: document.getElementById('ambientAnalysis'),
+    spillFileName: document.getElementById('spillFileName'),
+    sceneFileName: document.getElementById('sceneFileName'),
+    spillState: document.getElementById('spillState'),
+    sceneState: document.getElementById('sceneState'),
+    spillGain: document.getElementById('spillGain'),
+    sceneGain: document.getElementById('sceneGain'),
+    spillGainValue: document.getElementById('spillGainValue'),
+    sceneGainValue: document.getElementById('sceneGainValue'),
+    monitorGain: document.getElementById('monitorGain'),
+    monitorGainValue: document.getElementById('monitorGainValue'),
+    demoVolUp: document.getElementById('demoVolUp'),
+    demoVolDown: document.getElementById('demoVolDown'),
+    demoVolumeSegments: document.getElementById('demoVolumeSegments'),
+    demoDuck: document.getElementById('demoDuck'),
+    mutedBadge: document.getElementById('mutedBadge'),
+    spillMute: document.getElementById('spillMute'),
+    sceneMute: document.getElementById('sceneMute'),
+    spillSolo: document.getElementById('spillSolo'),
+    sceneSolo: document.getElementById('sceneSolo'),
+    loadLocalDefault: document.getElementById('loadLocalDefault'),
+    cabinProgramSource: document.getElementById('cabinProgramSource'),
+    viewModeToggle: document.getElementById('viewModeToggle'),
+    startBoth: document.getElementById('startBoth'),
+    stopBoth: document.getElementById('stopBoth'),
+    restartBoth: document.getElementById('restartBoth'),
+    listenA: document.getElementById('listenA'),
+    listenB: document.getElementById('listenB'),
+    listenerACard: document.getElementById('listenerACard'),
+    listenerBCard: document.getElementById('listenerBCard'),
+    listenerAContent: document.getElementById('listenerAContent'),
+    listenerAScene: document.getElementById('listenerAScene'),
+    listenerAAmbient: document.getElementById('listenerAAmbient'),
+    listenerATotal: document.getElementById('listenerATotal'),
+    listenerBContent: document.getElementById('listenerBContent'),
+    listenerBTransfer: document.getElementById('listenerBTransfer'),
+    listenerBScene: document.getElementById('listenerBScene'),
+    listenerBAmbient: document.getElementById('listenerBAmbient'),
+    listenerBTotal: document.getElementById('listenerBTotal'),
+    spillAnalysis: document.getElementById('spillAnalysis'),
+    sceneAnalysis: document.getElementById('sceneAnalysis'),
+    spillLufs: document.getElementById('spillLufs'),
+    sceneLufs: document.getElementById('sceneLufs'),
+    ambientLufs: document.getElementById('ambientLufs'),
+    deltaLu: document.getElementById('deltaLu'),
+    sumLufs: document.getElementById('sumLufs'),
+    status: document.getElementById('status'),
+    scope: document.getElementById('scope'),
+    cabinTest: document.getElementById('cabinTest'),
+    cabinTestReadout: document.getElementById('cabinTestReadout'),
+    demoVolumeControl: document.getElementById('demoVolumeControl'),
+    protectionDemoState: document.getElementById('protectionDemoState'),
+    protectionCeiling: document.getElementById('protectionCeiling'),
+    protectionCeilingValue: document.getElementById('protectionCeilingValue'),
+    demoMusicFile: document.getElementById('demoMusicFile'),
+    demoMusicFileName: document.getElementById('demoMusicFileName'),
+    demoVoiceFile: document.getElementById('demoVoiceFile'),
+    demoVoiceFileName: document.getElementById('demoVoiceFileName'),
+    cabinProgramSelect: document.getElementById('cabinProgramSelect'),
+    protectionStatus: document.getElementById('protectionStatus'),
+    programPreMonitor: document.getElementById('programPreMonitor'),
+    monitorPostMonitor: document.getElementById('monitorPostMonitor')
+  };
+
+  const scopeCtx = els.scope.getContext('2d');
+  const cabinTestCtx = els.cabinTest.getContext('2d');
+
+  const state = {
+    audioContext: null,
+    spillBuffer: null,
+    spillSourceMode: 'builtin',
+    demoContentSlots: { music: null, voice: null },
+    programSynth: null,
+    programReferenceGainNode: null,
+    programPreAnalyser: null,
+    programPreTimeData: null,
+    programPreEnergyHistory: [],
+    programPrePeakHistory: [],
+    programPreLastUpdateMs: 0,
+    programProtection: null,
+    protectionStats: null,
+    protectionFeelness: 'normal',
+    programAKPre: null,
+    programAKHp: null,
+    programAAnalyser: null,
+    programATimeData: null,
+    programAEnergyHistory: [],
+    programAK3s: null,
+    programReferenceTrimBySource: { builtin: 4, file: 4 },
+    sceneBuffer: null,
+    scenePinkBuffer: null,
+    scenePinkLufs: null,
+    sceneBrownBuffer: null,
+    sceneBrownLufs: null,
+    sceneSourceMode: 'brown',
+    ambientBuffer: null,
+    ambientPresetBuffers: {},
+    ambientPresetLufs: {},
+    ambientPreset: 'warm',
+    ambientFileBuffer: null,
+    ambientFileLufs: null,
+    ambientSourceMode: 'brown',
+    ambientSourceLufs: null,
+    spillSource: null,
+    sceneSource: null,
+    ambientSource: null,
+    spillGainNode: null,
+    sceneGainNode: null,
+    ambientGainNode: null,
+    mixBus: null,
+    aMonitorMixBus: null,
+    bMonitorSelectGain: null,
+    aMonitorSelectGain: null,
+    aContentMonitorGain: null,
+    monitorGainNode: null,
+    monitorPostAnalyser: null,
+    monitorPostTimeData: null,
+    monitorPostEnergyHistory: [],
+    monitorPostPeakHistory: [],
+    monitorPostLastUpdateMs: 0,
+    demoDuckGainNode: null,
+    transportFadeGainNode: null,
+    transportFading: false,
+    demoDucked: false,
+    sumKPre: null,
+    sumKHp: null,
+    sumAnalyser: null,
+    sumTimeData: null,
+    sumVisualMeter: { smoothedDb: -100, hasSignal: false },
+    meterSink: null,
+    branchMeters: {
+      spill: null,
+      scene: null,
+      ambient: null
+    },
+    spillSourceLufs: null,
+    sceneSourceLufs: null,
+    spillMuted: false,
+    sceneMuted: true,
+    ambientMuted: false,
+    spillSolo: false,
+    sceneSolo: false,
+    ambientSolo: false,
+    monitorListener: 'B',
+    playing: false,
+    animationId: null,
+    lastHistorySampleMs: 0,
+    lastVisualMeterUpdateMs: 0,
+    lastSumVisualMeterUpdateMs: 0,
+    cabinProbe: null,
+    sumEnergyHistory: [],
+    scopeHistory: []
+  };
+
+  const CABIN_NOISE_GAIN_BY_SPEED_DB = { 0: -50, 50: -18, 100: -8 };
+
+  function ensureAudioContext() {
+    if (!state.audioContext) {
+      state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    return state.audioContext;
+  }
+
+  async function resumeAudio() {
+    const ac = ensureAudioContext();
+    if (ac.state !== 'running') await ac.resume();
+  }
+
+  function dbToGain(db) {
+    return Math.pow(10, db / 20);
+  }
+
+  function energyToDb(energy) {
+    if (!Number.isFinite(energy) || energy <= 0) return -100;
+    return 10 * Math.log10(energy);
+  }
+
+  function dbToEnergy(db) { return Math.pow(10, db / 10); }
+
+  function getBufferSamplePeakDb(buffer) {
+    let peak = 0;
+    for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
+      const samples = buffer.getChannelData(channel);
+      for (let i = 0; i < samples.length; i++) peak = Math.max(peak, Math.abs(samples[i]));
+    }
+    return 20 * Math.log10(Math.max(1e-12, peak));
+  }
+
+  function formatDb(value, suffix = ' LUFS') {
+    if (!Number.isFinite(value)) return '--';
+    return `${value.toFixed(1)}${suffix}`;
+  }
+
+  function formatSigned(value, suffix = ' LU') {
+    if (!Number.isFinite(value)) return '--';
+    const sign = value > 0 ? '+' : '';
+    return `${sign}${value.toFixed(1)}${suffix}`;
+  }
+
+  function formatGain(value) {
+    const n = Number(value);
+    return `${n < 0 ? '−' : n > 0 ? '+' : ''}${Math.abs(n).toFixed(1)} dB`;
+  }
+
+  function average(values) {
+    if (!values.length) return null;
+    let sum = 0;
+    for (const value of values) sum += value;
+    return sum / values.length;
+  }
+
+  function getActiveSceneBuffer() {
+    if (state.sceneSourceMode === 'pink') return state.scenePinkBuffer;
+    if (state.sceneSourceMode === 'brown') return state.sceneBrownBuffer;
+    return state.sceneBuffer;
+  }
+
+  // EN: Keep all private demo paths in one table so content can be swapped without changing loader logic.
+  // EN: These repository-relative files are intentionally gitignored and may be absent in a public checkout.
+  const localDemoContent = {
+    aContent: {
+      speech: '../../private/AudiDemo Speak Female.wav',
+      music: '../../private/headrest-music.mp3' 
+    },
+    ambient: {
+      quiet: '../private/ambient-quiet.mp3',
+      driving: '../private/ambient-driving.mp3',
+      motorway: '../private/ambient-motorway.mp3'
+    },
+    // EN: Public release has no bundled private audio; the built-in Bach source is always available.
+    defaultPreset: { aContent: 'builtin', scene: 'brown', ambient: 'brown' }
+  };
+
+  function getActiveSceneSourceLufs() {
+    if (state.sceneSourceMode === 'pink') return state.scenePinkLufs;
+    if (state.sceneSourceMode === 'brown') return state.sceneBrownLufs;
+    return state.sceneSourceLufs;
+  }
+
+  function getActiveAmbientBuffer() {
+    return state.ambientSourceMode === 'file' ? state.ambientFileBuffer : state.ambientBuffer;
+  }
+
+  function getActiveAmbientSourceLufs() {
+    return state.ambientSourceMode === 'file' ? state.ambientFileLufs : state.ambientSourceLufs;
+  }
+
+  function getBranchSourceEstimate(branch) {
+    if (branch === 'spill') {
+      if (Number.isFinite(state.programAK3s)) return state.programAK3s;
+      if (state.spillSourceMode === 'file' && Number.isFinite(state.spillSourceLufs)) {
+        return state.spillSourceLufs + Number(els.programReferenceTrim.value);
+      }
+      return null;
+    }
+    if (branch === 'scene') return getActiveSceneSourceLufs();
+    if (branch === 'ambient') return getActiveAmbientSourceLufs();
+    return null;
+  }
+
+  function getBranchGainDb(branch) {
+    if (branch === 'spill') return Number(els.spillGain.value);
+    if (branch === 'scene') return Number(els.sceneGain.value);
+    if (branch === 'ambient') return Number(els.ambientGain.value);
+    return 0;
+  }
+
+  function getVisualBranchState(branch) {
+    // EN: This is the single visual-data boundary for the three existing audio branches.
+    // EN: It reports state only; it must not alter gain, summing, monitor output, or audio quality.
+    const sourceEstimateDb = getBranchSourceEstimate(branch);
+    const gainDb = getBranchGainDb(branch);
+    const audible = getBranchAudible(branch);
+    const configuredRenderedDb = Number.isFinite(sourceEstimateDb) ? sourceEstimateDb + gainDb : null;
+    const meter = state.branchMeters[branch];
+
+    return {
+      branch,
+      sourceEstimateDb,
+      gainDb,
+      audible,
+      configuredRenderedDb,
+      audibleRenderedDb: audible ? configuredRenderedDb : null,
+      liveRmsDb: meter && meter.hasSignal ? meter.smoothedDb : null
+    };
+  }
+
+  function getAllVisualBranchStates() {
+    return {
+      spill: getVisualBranchState('spill'),
+      scene: getVisualBranchState('scene'),
+      ambient: getVisualBranchState('ambient')
+    };
+  }
+
+  function buildPinkNoiseBuffer(context, durationSec = 30) {
+    // EN: Fixed generated pink- and brown-noise baselines for content-comparison tests.
+    // EN: A longer loop reduces obvious repetition while keeping the source reproducible in architecture.
+    const length = Math.max(1, Math.floor(context.sampleRate * durationSec));
+    const buffer = context.createBuffer(1, length, context.sampleRate);
+    const data = buffer.getChannelData(0);
+    let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+    for (let i = 0; i < length; i++) {
+      const white = Math.random() * 2 - 1;
+      b0 = 0.99886 * b0 + white * 0.0555179;
+      b1 = 0.99332 * b1 + white * 0.0750759;
+      b2 = 0.96900 * b2 + white * 0.1538520;
+      b3 = 0.86650 * b3 + white * 0.3104856;
+      b4 = 0.55000 * b4 + white * 0.5329522;
+      b5 = -0.7616 * b5 - white * 0.0168980;
+      const pink = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
+      b6 = white * 0.115926;
+      data[i] = pink * 0.11;
+    }
+    return buffer;
+  }
+
+
+
+  async function buildBrownNoise50HzBuffer(context, durationSec = 30) {
+    // EN: Brown-noise comparison scene with a fixed 50 Hz high-pass.
+    // EN: The high-pass removes the very-low-frequency energy that otherwise dominates 1/f^2 brown noise.
+    const length = Math.max(1, Math.floor(context.sampleRate * durationSec));
+    const rawBuffer = context.createBuffer(1, length, context.sampleRate);
+    const data = rawBuffer.getChannelData(0);
+
+    let brown = 0;
+    for (let i = 0; i < length; i++) {
+      const white = Math.random() * 2 - 1;
+      brown = (brown + 0.02 * white) / 1.02;
+      data[i] = brown * 3.5;
+    }
+
+    const offline = new OfflineAudioContext(1, length, context.sampleRate);
+    const src = offline.createBufferSource();
+    src.buffer = rawBuffer;
+    const hp = offline.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = 50;
+    hp.Q.value = 0.707;
+    src.connect(hp);
+    hp.connect(offline.destination);
+    src.start(0);
+    return offline.startRendering();
+  }
+
+  async function buildAmbientBrown20HzBuffer(context, durationSec = 30, preset = 'full') {
+    // EN: Ambient brown noise is deliberately broader/lower than the Scene brown baseline.
+    // EN: A 20 Hz high-pass removes DC and subsonic drift but preserves cabin-like low-frequency rumble.
+    const length = Math.max(1, Math.floor(context.sampleRate * durationSec));
+    const rawBuffer = context.createBuffer(1, length, context.sampleRate);
+    const data = rawBuffer.getChannelData(0);
+    let brown = 0;
+    for (let i = 0; i < length; i++) {
+      const white = Math.random() * 2 - 1;
+      brown = (brown + 0.02 * white) / 1.02;
+      data[i] = brown * 3.5;
+    }
+    const offline = new OfflineAudioContext(1, length, context.sampleRate);
+    const src = offline.createBufferSource();
+    src.buffer = rawBuffer;
+    const hp = offline.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = 20;
+    hp.Q.value = 0.707;
+    src.connect(hp);
+    let output = hp;
+    const settings = { soft: [2000, 0], warm: [800, 0], hvac: [4000, 150] }[preset];
+    if (settings) {
+      if (settings[1]) { const hp2 = offline.createBiquadFilter(); hp2.type = 'highpass'; hp2.frequency.value = settings[1]; output.connect(hp2); output = hp2; }
+      const lp = offline.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = settings[0]; output.connect(lp); output = lp;
+    }
+    output.connect(offline.destination);
+    src.start(0);
+    return offline.startRendering();
+  }
+
+  async function ensureAmbientReady() {
+    await resumeAudio();
+    const preset = state.ambientPreset;
+    if (!state.ambientPresetBuffers[preset]) {
+      els.ambientState.textContent = 'generating…';
+      const buffer = await buildAmbientBrown20HzBuffer(state.audioContext, 30, preset);
+      const measured = await analyseIntegratedKStyle(buffer);
+      const targetLufs = -13.8;
+      const trimDb = targetLufs - measured;
+      for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
+        const data = buffer.getChannelData(channel); const gain = dbToGain(trimDb);
+        for (let i = 0; i < data.length; i++) data[i] *= gain;
+      }
+      state.ambientPresetBuffers[preset] = buffer;
+      state.ambientPresetLufs[preset] = await analyseIntegratedKStyle(buffer);
+      state.ambientBuffer = buffer;
+      state.ambientSourceLufs = state.ambientPresetLufs[preset];
+      els.ambientAnalysis.textContent = `Generated ambient K/LUFS-style estimate: ${formatDb(state.ambientSourceLufs)} · ${preset} brown · normalized to −13.8 LUFS · 30 s loop`;
+      els.ambientState.textContent = 'ready';
+    }
+    state.ambientBuffer = state.ambientPresetBuffers[preset];
+    state.ambientSourceLufs = state.ambientPresetLufs[preset];
+  }
+
+  async function setAmbientPreset(preset) {
+    const wasPlaying = state.playing; if (wasPlaying) stopBoth(false);
+    state.ambientPreset = preset; await ensureAmbientReady();
+    document.querySelectorAll('[data-ambient-preset]').forEach(button => button.classList.toggle('active', button.dataset.ambientPreset === preset));
+    updateReadouts(); updateStatus(); if (wasPlaying) await startBoth();
+  }
+
+  async function setAmbientSourceMode(mode) {
+    if (mode !== 'brown' && mode !== 'file') return;
+    const wasPlaying = state.playing;
+    if (wasPlaying) stopBoth(false);
+    state.ambientSourceMode = mode;
+    if (mode === 'brown') await ensureAmbientReady();
+    els.ambientSourceBrown.classList.toggle('active', mode === 'brown');
+    els.ambientSourceFile.classList.toggle('active', mode === 'file');
+    els.ambientFileRow.style.display = mode === 'file' ? '' : 'none';
+    els.ambientAnalysis.textContent = mode === 'file' && state.ambientFileBuffer
+      ? `Ambient file K/LUFS-style estimate: ${formatDb(state.ambientFileLufs)} · duration ${state.ambientFileBuffer.duration.toFixed(1)} s`
+      : mode === 'file' ? 'Ambient file K/LUFS-style estimate: --'
+      : `Generated ambient K/LUFS-style estimate: ${formatDb(state.ambientSourceLufs)} · Brown · 20 Hz high-pass · 30 s loop`;
+    updateReadouts(); refreshTransportState(); updateStatus();
+    if (wasPlaying && isProgramReady() && getActiveSceneBuffer() && getActiveAmbientBuffer()) await startBoth();
+  }
+
+  async function ensureBrownSceneReady() {
+    await resumeAudio();
+    if (!state.sceneBrownBuffer) {
+      els.sceneState.textContent = 'generating…';
+      state.sceneBrownBuffer = await buildBrownNoise50HzBuffer(state.audioContext, 30);
+      state.sceneBrownLufs = await analyseIntegratedKStyle(state.sceneBrownBuffer);
+    }
+  }
+
+  async function ensurePinkSceneReady() {
+    await resumeAudio();
+    if (!state.scenePinkBuffer) {
+      els.sceneState.textContent = 'generating…';
+      state.scenePinkBuffer = buildPinkNoiseBuffer(state.audioContext, 30);
+      state.scenePinkLufs = await analyseIntegratedKStyle(state.scenePinkBuffer);
+    }
+  }
+
+  async function setSceneSourceMode(mode) {
+    if (mode !== 'file' && mode !== 'pink' && mode !== 'brown') return;
+    const wasPlaying = state.playing;
+    if (wasPlaying) stopBoth(false);
+    state.sceneSourceMode = mode;
+    if (mode === 'pink') await ensurePinkSceneReady();
+    if (mode === 'brown') await ensureBrownSceneReady();
+    els.sceneSourceFile.classList.toggle('active', mode === 'file');
+    els.sceneSourcePink.classList.toggle('active', mode === 'pink');
+    els.sceneSourceBrown.classList.toggle('active', mode === 'brown');
+    els.sceneFileRow.style.display = mode === 'file' ? '' : 'none';
+    if (mode === 'pink') {
+      els.sceneAnalysis.textContent = `Generated pink-noise K/LUFS-style estimate: ${formatDb(state.scenePinkLufs)} · 30 s loop`;
+    } else if (mode === 'brown') {
+      els.sceneAnalysis.textContent = `Generated brown-noise K/LUFS-style estimate: ${formatDb(state.sceneBrownLufs)} · 50 Hz high-pass · 30 s loop`;
+    } else if (state.sceneBuffer) {
+      els.sceneAnalysis.textContent = `Source K/LUFS-style estimate: ${formatDb(state.sceneSourceLufs)} · duration ${state.sceneBuffer.duration.toFixed(1)} s`;
+    } else {
+      els.sceneAnalysis.textContent = 'Source K/LUFS-style estimate: --';
+    }
+    updateReadouts();
+    refreshTransportState();
+    updateStatus();
+    if (wasPlaying && isProgramReady() && getActiveSceneBuffer()) await startBoth();
+  }
+
+  // EN: Slider values are referenced to Demo VOL 0 dB; the pre-monitor threshold follows VOL to preserve that output ceiling.
+  const PROTECTION_VOLUME_REFERENCE_DB = 0;
+  const FEELNESS_OFFSETS_DB = { light: -6, normal: 0, heavy: 3 };
+
+  function effectiveProtectionCeilingDb() {
+    const volumeOffset = Number(els.monitorGain.value) - PROTECTION_VOLUME_REFERENCE_DB;
+    return Number(els.protectionCeiling.value) + FEELNESS_OFFSETS_DB[state.protectionFeelness] - volumeOffset;
+  }
+
+  function updateProtectionUi() {
+    const reduction = state.protectionStats?.reductionDb || 0;
+    const active = reduction > 0.15;
+    els.demoVolumeControl.classList.toggle('protectionActive', active);
+    els.listenerACard.classList.toggle('protectionActive', active);
+    document.querySelectorAll('[data-feelness]').forEach(button => button.classList.toggle('active', button.dataset.feelness === state.protectionFeelness));
+    els.protectionDemoState.textContent = active
+      ? `Tactile feelness control: ${state.protectionFeelness} · active`
+      : `Tactile feelness control: ${state.protectionFeelness}`;
+  }
+
+  function configureProtection() {
+    const ceilingDb = effectiveProtectionCeilingDb();
+    state.programProtection?.configure({ enabled: true, ceilingDb });
+    return ceilingDb;
+  }
+
+  function updateControls(ambientFadeSeconds = 0.02) {
+    els.programReferenceTrimValue.textContent = formatGain(els.programReferenceTrim.value);
+    els.spillGainValue.textContent = formatGain(els.spillGain.value);
+    els.sceneGainValue.textContent = formatGain(els.sceneGain.value);
+    els.ambientGainValue.textContent = formatGain(els.ambientGain.value);
+    els.monitorGainValue.textContent = formatGain(els.monitorGain.value);
+
+    if (state.monitorGainNode && state.audioContext) {
+      state.monitorGainNode.gain.setTargetAtTime(dbToGain(Number(els.monitorGain.value)), state.audioContext.currentTime, 0.03);
+    }
+    if (state.programReferenceGainNode && state.audioContext) {
+      state.programReferenceGainNode.gain.setTargetAtTime(dbToGain(Number(els.programReferenceTrim.value)), state.audioContext.currentTime, 0.03);
+    }
+
+    updateBranchGains({ ambientFadeSeconds });
+    configureProtection();
+    updateReadouts();
+    updateDemoVolumeUi();
+    updateCabinNoiseUi();
+    updateProtectionUi();
+  }
+
+  function updateCabinNoiseUi() {
+    const gainDb = Number(els.ambientGain.value);
+    document.querySelectorAll('[data-cabin-speed]').forEach(button => {
+      const speed = Number(button.dataset.cabinSpeed);
+      button.classList.toggle('active', CABIN_NOISE_GAIN_BY_SPEED_DB[speed] === gainDb);
+    });
+  }
+
+  function setCabinNoiseCondition(speed) {
+    const gainDb = CABIN_NOISE_GAIN_BY_SPEED_DB[speed];
+    if (!Number.isFinite(gainDb)) return;
+    els.ambientGain.value = String(gainDb);
+    // EN: A condition change models a gradual cabin-noise change, not a level step.
+    updateControls(1.0);
+    updateStatus();
+  }
+
+  function updateDemoVolumeUi() {
+    const value = Math.max(-36, Math.min(0, Number(els.monitorGain.value)));
+    const activeCount = Math.max(1, Math.min(7, Math.round((value + 36) / 6) + 1));
+    const segments = Array.from(els.demoVolumeSegments.children);
+    segments.forEach((segment, index) => segment.classList.toggle('on', index >= segments.length - activeCount));
+    els.demoDuck.classList.toggle('active', state.demoDucked);
+    els.demoDuck.innerHTML = state.demoDucked
+      ? '<svg class="demoDuckIcon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10h4l5-4v12l-5-4H4z"></path><path d="M17 9l4 4m0-4l-4 4"></path></svg><span>UNMUTE DEMO</span>'
+      : 'Mute demo';
+    els.demoDuck.setAttribute('aria-pressed', state.demoDucked ? 'true' : 'false');
+    els.mutedBadge.classList.toggle('active', state.demoDucked);
+    els.demoVolumeControl.classList.toggle('protectionActive', (state.protectionStats?.reductionDb || 0) > 0.15);
+  }
+
+  function stepDemoVolume(deltaDb) {
+    const current = Number(els.monitorGain.value);
+    const next = Math.max(-36, Math.min(0, Math.round((current + deltaDb) / 6) * 6));
+    els.monitorGain.value = String(next);
+    updateControls();
+    updateStatus();
+  }
+
+  function toggleDemoDuck() {
+    state.demoDucked = !state.demoDucked;
+    if (state.demoDuckGainNode && state.audioContext) {
+      const now = state.audioContext.currentTime;
+      const target = state.demoDucked ? dbToGain(-20) : 1;
+      // EN: Half-mute remains audible for conversation; transition it over one second.
+      state.demoDuckGainNode.gain.cancelScheduledValues(now);
+      state.demoDuckGainNode.gain.setValueAtTime(state.demoDuckGainNode.gain.value, now);
+      state.demoDuckGainNode.gain.linearRampToValueAtTime(target, now + 1.0);
+    }
+    updateDemoVolumeUi();
+  }
+
+  function getBranchAudible(branch) {
+    const anySolo = state.spillSolo || state.sceneSolo || state.ambientSolo;
+    if (branch === 'spill') return !state.spillMuted && (!anySolo || state.spillSolo);
+    if (branch === 'scene') return !state.sceneMuted && (!anySolo || state.sceneSolo);
+    if (branch === 'ambient') return !state.ambientMuted && (!anySolo || state.ambientSolo);
+    return false;
+  }
+
+  function updateBranchGains({ ambientFadeSeconds = 0.02 } = {}) {
+    if (!state.audioContext) return;
+    const now = state.audioContext.currentTime;
+
+    if (state.spillGainNode) {
+      const target = getBranchAudible('spill') ? dbToGain(Number(els.spillGain.value)) : 0;
+      state.spillGainNode.gain.setTargetAtTime(target, now, 0.02);
+    }
+    if (state.sceneGainNode) {
+      const target = getBranchAudible('scene') ? dbToGain(Number(els.sceneGain.value)) : 0;
+      state.sceneGainNode.gain.setTargetAtTime(target, now, 0.02);
+    }
+    if (state.ambientGainNode) {
+      const target = getBranchAudible('ambient') ? dbToGain(Number(els.ambientGain.value)) : 0;
+      if (ambientFadeSeconds >= 0.1) {
+        state.ambientGainNode.gain.cancelScheduledValues(now);
+        state.ambientGainNode.gain.setValueAtTime(state.ambientGainNode.gain.value, now);
+        state.ambientGainNode.gain.linearRampToValueAtTime(target, now + ambientFadeSeconds);
+      } else {
+        state.ambientGainNode.gain.setTargetAtTime(target, now, ambientFadeSeconds);
+      }
+    }
+    // EN: This independent A-content tap feeds only the A monitor mix.
+    // EN: It follows Mute/Solo, but never enters the measurement or B monitor path.
+    if (state.aContentMonitorGain) {
+      const target = getBranchAudible('spill') ? 1 : 0;
+      state.aContentMonitorGain.gain.setTargetAtTime(target, now, 0.02);
+    }
+
+    els.spillMute.classList.toggle('active', state.spillMuted);
+    els.sceneMute.classList.toggle('active', state.sceneMuted);
+    els.ambientMute.classList.toggle('active', state.ambientMuted);
+    els.spillSolo.classList.toggle('active', state.spillSolo);
+    els.sceneSolo.classList.toggle('active', state.sceneSolo);
+    els.ambientSolo.classList.toggle('active', state.ambientSolo);
+  }
+
+  function setMonitorListener(listener) {
+    if (listener !== 'A' && listener !== 'B') return;
+    state.monitorListener = listener;
+    els.listenA.classList.toggle('active', listener === 'A');
+    els.listenB.classList.toggle('active', listener === 'B');
+    els.listenA.textContent = listener === 'A' ? 'Listening as A' : 'Listen as A';
+    els.listenB.textContent = listener === 'B' ? 'Listening as B' : 'Listen as B';
+    els.listenerACard.classList.toggle('active', listener === 'A');
+    els.listenerBCard.classList.toggle('active', listener === 'B');
+    if (state.audioContext && state.aMonitorSelectGain && state.bMonitorSelectGain) {
+      const now = state.audioContext.currentTime;
+      state.aMonitorSelectGain.gain.setTargetAtTime(listener === 'A' ? 1 : 0, now, 0.012);
+      state.bMonitorSelectGain.gain.setTargetAtTime(listener === 'B' ? 1 : 0, now, 0.012);
+    }
+    updateStatus();
+  }
+
+  function updateReadouts() {
+    const branches = getAllVisualBranchStates();
+    const spillRendered = branches.spill.configuredRenderedDb;
+    const sceneRendered = branches.scene.configuredRenderedDb;
+    const ambientRendered = branches.ambient.configuredRenderedDb;
+    const delta = Number.isFinite(spillRendered) && Number.isFinite(sceneRendered)
+      ? sceneRendered - spillRendered
+      : null;
+
+    els.spillLufs.textContent = formatDb(spillRendered);
+    els.sceneLufs.textContent = formatDb(sceneRendered);
+    els.ambientLufs.textContent = formatDb(ambientRendered);
+    els.deltaLu.textContent = formatSigned(delta);
+    updateListenerCards(branches);
+  }
+
+  function updateListenerCards(branches) {
+    // EN: Listener cards are estimates from the existing branch values, not extra measurement paths.
+    const aContent = branches.spill.sourceEstimateDb;
+    const bContent = branches.spill.configuredRenderedDb;
+    const scene = branches.scene.configuredRenderedDb;
+    const ambient = branches.ambient.configuredRenderedDb;
+    const total = (...levels) => levels.every(Number.isFinite)
+      ? energyToDb(levels.reduce((sum, level) => sum + dbToEnergy(level), 0))
+      : null;
+    els.listenerAContent.textContent = formatDb(aContent);
+    els.listenerAScene.textContent = formatDb(scene);
+    els.listenerAAmbient.textContent = formatDb(ambient);
+    els.listenerATotal.textContent = formatDb(total(aContent, scene, ambient));
+    els.listenerBContent.textContent = formatDb(bContent);
+    els.listenerBTransfer.textContent = formatGain(els.spillGain.value);
+    els.listenerBScene.textContent = formatDb(scene);
+    els.listenerBAmbient.textContent = formatDb(ambient);
+    els.listenerBTotal.textContent = formatDb(total(bContent, scene, ambient));
+  }
+
+  function isProgramReady() {
+    return state.spillSourceMode === 'builtin' || !!state.spillBuffer;
+  }
+
+  function isSceneConfigured() {
+    return state.sceneSourceMode === 'pink' || state.sceneSourceMode === 'brown' || !!state.sceneBuffer;
+  }
+
+  function isAmbientConfigured() {
+    return state.ambientSourceMode === 'brown' || !!state.ambientFileBuffer;
+  }
+
+  function refreshTransportState() {
+    const ready = isProgramReady() && isSceneConfigured() && isAmbientConfigured();
+    els.startBoth.disabled = !ready && !state.playing;
+    els.startBoth.textContent = state.playing ? '❚❚ Pause' : '▶ Play';
+    els.stopBoth.disabled = !state.playing;
+    els.restartBoth.disabled = !ready;
+    els.spillState.textContent = state.spillSourceMode === 'builtin' ? 'built-in ready' : (state.spillBuffer ? 'file ready' : 'select file');
+    els.sceneState.textContent = state.sceneSourceMode === 'pink'
+      ? (state.scenePinkBuffer ? 'pink ready' : 'pink · generated on start')
+      : state.sceneSourceMode === 'brown'
+        ? (state.sceneBrownBuffer ? 'brown ready' : 'brown · generated on start')
+        : (state.sceneBuffer ? 'file ready' : 'select file');
+    els.ambientState.textContent = state.ambientSourceMode === 'file'
+      ? (state.ambientFileBuffer ? 'file ready' : 'select file')
+      : (state.ambientBuffer ? 'brown ready' : 'brown · generated on start');
+  }
+
+  async function decodeSelectedFile(file, branch) {
+    await resumeAudio();
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = await state.audioContext.decodeAudioData(arrayBuffer.slice(0));
+
+    if (branch === 'spill') {
+      if (state.spillSourceMode !== 'file') {
+        rememberProgramGain();
+        state.spillSourceMode = 'file';
+        applyProgramGainForMode('file');
+      }
+      state.spillBuffer = buffer;
+      els.spillSourceBuiltin.classList.remove('active');
+      els.spillSourceFile.classList.add('active');
+      els.spillFileRow.style.display = '';
+      els.spillFileName.textContent = file.name;
+      updateProgramSourcePresentation();
+      els.spillState.textContent = 'analysing…';
+      state.spillSourceLufs = await analyseIntegratedKStyle(buffer);
+      els.spillAnalysis.textContent = `Source K/LUFS-style estimate: ${formatDb(state.spillSourceLufs)} · duration ${buffer.duration.toFixed(1)} s`;
+      els.spillState.textContent = 'ready';
+    } else if (branch === 'scene') {
+      state.sceneBuffer = buffer;
+      els.sceneFileName.textContent = file.name;
+      els.sceneState.textContent = 'analysing…';
+      state.sceneSourceLufs = await analyseIntegratedKStyle(buffer);
+      els.sceneAnalysis.textContent = `Source K/LUFS-style estimate: ${formatDb(state.sceneSourceLufs)} · duration ${buffer.duration.toFixed(1)} s`;
+      els.sceneState.textContent = 'ready';
+    } else {
+      state.ambientFileBuffer = buffer;
+      els.ambientFileName.textContent = file.name;
+      els.ambientState.textContent = 'analysing…';
+      state.ambientFileLufs = await analyseIntegratedKStyle(buffer);
+      els.ambientAnalysis.textContent = `Ambient file K/LUFS-style estimate: ${formatDb(state.ambientFileLufs)} · duration ${buffer.duration.toFixed(1)} s`;
+      els.ambientState.textContent = 'ready';
+    }
+
+    updateReadouts();
+    refreshTransportState();
+    updateStatus();
+  }
+
+  async function loadLocalProgram(programKey = localDemoContent.defaultPreset.aContent) {
+    if (programKey === 'builtin') {
+      await setSpillSourceMode('builtin');
+      return;
+    }
+    // EN: Private programme material is intentionally not part of the public repository.
+    // EN: This keeps the public demo usable without distributing licensed or personal audio.
+    const preset = localDemoContent.defaultPreset;
+    const relativePath = localDemoContent.aContent[programKey];
+    if (!relativePath) return;
+    els.loadLocalDefault.disabled = true;
+    els.loadLocalDefault.textContent = 'Loading local default…';
+
+    try {
+      await resumeAudio();
+      const response = await fetch(new URL(relativePath, window.location.href));
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = await state.audioContext.decodeAudioData(arrayBuffer.slice(0));
+      if (state.playing) stopBoth(false);
+
+      if (state.spillSourceMode !== 'file') {
+        rememberProgramGain();
+        state.spillSourceMode = 'file';
+        applyProgramGainForMode('file');
+      }
+      state.spillBuffer = buffer;
+      els.spillSourceBuiltin.classList.remove('active');
+      els.spillSourceFile.classList.add('active');
+      els.spillFileRow.style.display = '';
+      els.spillFileName.textContent = `Program A: ${programKey === 'speech' ? 'AudiDemo Speak Female.wav' : 'headrest-music.mp3'}`;
+      updateProgramSourcePresentation();
+      els.spillState.textContent = 'analysing…';
+      state.spillSourceLufs = await analyseIntegratedKStyle(buffer);
+      els.spillAnalysis.textContent = `Source K/LUFS-style estimate: ${formatDb(state.spillSourceLufs)} · duration ${buffer.duration.toFixed(1)} s`;
+      els.spillState.textContent = 'ready';
+
+      // EN: This preset deliberately retains generated sources unless a file source is explicitly selected.
+      await setSceneSourceMode(preset.scene);
+      await setAmbientSourceMode(preset.ambient);
+      updateReadouts();
+      refreshTransportState();
+      els.status.textContent = `Program A loaded · ${programKey === 'speech' ? 'Female speech' : 'Music'} + generated Scene bed/Cabin ambient. Start the mix to listen.`;
+    } catch (err) {
+      els.status.textContent = `Local default content unavailable. Expected ${relativePath}. Run through VS Code Live Preview after adding the file.`;
+    } finally {
+      els.loadLocalDefault.disabled = false;
+      els.loadLocalDefault.textContent = 'Load local default content';
+    }
+  }
+
+
+  async function analyseIntegratedKStyle(buffer) {
+    // EN: This intentionally mirrors the simplified K-style path in the original lab:
+    // EN: +4 dB high shelf near 1.5 kHz plus a 60 Hz high-pass, then 400 ms blocks.
+    // EN: It is a comparative research estimate, not a certified BS.1770 implementation.
+    const offline = new OfflineAudioContext(buffer.numberOfChannels, buffer.length, buffer.sampleRate);
+    const src = offline.createBufferSource();
+    src.buffer = buffer;
+
+    const shelf = offline.createBiquadFilter();
+    shelf.type = 'highshelf';
+    shelf.frequency.value = 1500;
+    shelf.gain.value = 4.0;
+
+    const hp = offline.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = 60;
+    hp.Q.value = 0.5;
+
+    src.connect(shelf);
+    shelf.connect(hp);
+    hp.connect(offline.destination);
+    src.start();
+
+    const rendered = await offline.startRendering();
+    const mono = mixToMono(rendered);
+    const blockSamples = Math.max(1, Math.round(rendered.sampleRate * 0.4));
+    const stepSamples = Math.max(1, Math.round(rendered.sampleRate * 0.1));
+    const energies = [];
+
+    for (let start = 0; start + blockSamples <= mono.length; start += stepSamples) {
+      let sum = 0;
+      for (let i = start; i < start + blockSamples; i++) {
+        const x = mono[i];
+        sum += x * x;
+      }
+      energies.push(sum / blockSamples);
+    }
+
+    return gatedIntegratedEstimate(energies);
+  }
+
+  function mixToMono(buffer) {
+    const mono = new Float32Array(buffer.length);
+    for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
+      const data = buffer.getChannelData(ch);
+      for (let i = 0; i < buffer.length; i++) mono[i] += data[i] / buffer.numberOfChannels;
+    }
+    return mono;
+  }
+
+  function gatedIntegratedEstimate(energies) {
+    const valid = energies.filter(v => Number.isFinite(v) && v > 0);
+    if (!valid.length) return null;
+
+    const absThreshold = Math.pow(10, -70 / 10);
+    const absAccepted = valid.filter(v => v >= absThreshold);
+    if (!absAccepted.length) return null;
+
+    const absMean = average(absAccepted);
+    const relativeThresholdDb = energyToDb(absMean) - 10;
+    const relativeThreshold = Math.pow(10, relativeThresholdDb / 10);
+    const relAccepted = absAccepted.filter(v => v >= relativeThreshold);
+    if (!relAccepted.length) return null;
+
+    return energyToDb(average(relAccepted));
+  }
+
+  function ensureMixGraph() {
+    const ac = state.audioContext;
+    if (state.mixBus) return;
+
+    state.mixBus = ac.createGain();
+    state.mixBus.gain.value = 1;
+
+    state.monitorGainNode = ac.createGain();
+    state.monitorGainNode.gain.value = dbToGain(Number(els.monitorGain.value));
+
+    // EN: B remains the existing rendered/measurement mix. A is a monitor-only mix.
+    // EN: Selector gains guarantee that exactly one listener mix reaches monitorGainNode.
+    state.aMonitorMixBus = ac.createGain();
+    state.aMonitorMixBus.gain.value = 1;
+    state.aMonitorSelectGain = ac.createGain();
+    state.bMonitorSelectGain = ac.createGain();
+    state.aMonitorSelectGain.gain.value = state.monitorListener === 'A' ? 1 : 0;
+    state.bMonitorSelectGain.gain.value = state.monitorListener === 'B' ? 1 : 0;
+
+    // EN: SUM analyser is on a parallel K-style measurement path before monitor gain.
+    state.sumKPre = ac.createBiquadFilter();
+    state.sumKPre.type = 'highshelf';
+    state.sumKPre.frequency.value = 1500;
+    state.sumKPre.gain.value = 4.0;
+
+    state.sumKHp = ac.createBiquadFilter();
+    state.sumKHp.type = 'highpass';
+    state.sumKHp.frequency.value = 60;
+    state.sumKHp.Q.value = 0.5;
+
+    state.sumAnalyser = ac.createAnalyser();
+    state.sumAnalyser.fftSize = 4096;
+    state.sumAnalyser.smoothingTimeConstant = 0;
+    state.sumTimeData = new Float32Array(state.sumAnalyser.fftSize);
+
+    // EN: A silent sink keeps the parallel visual-meter analysers active without creating a second audible path.
+    state.meterSink = ac.createGain();
+    state.meterSink.gain.value = 0;
+    state.meterSink.connect(ac.destination);
+
+    state.mixBus.connect(state.bMonitorSelectGain);
+    state.bMonitorSelectGain.connect(state.monitorGainNode);
+    state.aMonitorMixBus.connect(state.aMonitorSelectGain);
+    state.aMonitorSelectGain.connect(state.monitorGainNode);
+    state.demoDuckGainNode = ac.createGain();
+    state.demoDuckGainNode.gain.value = state.demoDucked ? dbToGain(-20) : 1;
+    // EN: Demo VOL observer is after listener selection and VOL, before the temporary demo mute.
+    state.monitorPostAnalyser = ac.createAnalyser();
+    state.monitorPostAnalyser.fftSize = 4096;
+    state.monitorPostAnalyser.smoothingTimeConstant = 0;
+    state.monitorPostTimeData = new Float32Array(state.monitorPostAnalyser.fftSize);
+    state.monitorGainNode.connect(state.monitorPostAnalyser);
+    state.monitorPostAnalyser.connect(state.meterSink);
+    state.monitorGainNode.connect(state.demoDuckGainNode);
+    // EN: Dedicated transport envelope gives Play and Pause a one-second acoustic fade.
+    state.transportFadeGainNode = ac.createGain();
+    state.transportFadeGainNode.gain.value = 0;
+    state.demoDuckGainNode.connect(state.transportFadeGainNode);
+    state.transportFadeGainNode.connect(ac.destination);
+
+    state.mixBus.connect(state.sumKPre);
+    state.sumKPre.connect(state.sumKHp);
+    state.sumKHp.connect(state.sumAnalyser);
+  }
+
+  function createBranchVisualMeter(branch, gainNode) {
+    const ac = state.audioContext;
+    const analyser = ac.createAnalyser();
+    analyser.fftSize = 2048;
+    analyser.smoothingTimeConstant = 0;
+    const timeData = new Float32Array(analyser.fftSize);
+
+    // EN: This parallel tap observes the post-gain branch only.
+    // EN: It never feeds the mix bus and cannot change the audible signal or headroom behaviour.
+    gainNode.connect(analyser);
+    analyser.connect(state.meterSink);
+    state.branchMeters[branch] = { analyser, timeData, smoothedDb: -100, hasSignal: false };
+  }
+
+  function rememberProgramGain() {
+    state.programReferenceTrimBySource[state.spillSourceMode] = Number(els.programReferenceTrim.value);
+  }
+
+  function applyProgramGainForMode(mode) {
+    els.programReferenceTrim.value = String(state.programReferenceTrimBySource[mode]);
+    updateControls();
+  }
+
+  function updateProgramSourcePresentation() {
+    const builtin = state.spillSourceMode === 'builtin';
+    els.spillSourceBuiltin.classList.toggle('active', builtin);
+    els.spillSourceFile.classList.toggle('active', !builtin);
+    els.spillBuiltinRow.style.display = builtin ? '' : 'none';
+    els.spillFileRow.style.display = builtin ? 'none' : '';
+    els.cabinProgramSource.textContent = builtin
+      ? 'Procedural Bach BWV 846'
+      : (state.spillBuffer ? els.spillFileName.textContent : 'Audio file · not selected');
+  }
+
+  async function setSpillSourceMode(mode) {
+    if (mode !== 'builtin' && mode !== 'file') return;
+    const wasPlaying = state.playing;
+    if (wasPlaying) stopBoth(false);
+    rememberProgramGain();
+    state.spillSourceMode = mode;
+    applyProgramGainForMode(mode);
+    state.programAK3s = null;
+    state.programAEnergyHistory = [];
+    updateProgramSourcePresentation();
+    if (mode === 'builtin') {
+      els.spillAnalysis.textContent = 'Program A K, 3 s: -- · measured live after start';
+    } else if (state.spillBuffer) {
+      els.spillAnalysis.textContent = `File integrated K-style: ${formatDb(state.spillSourceLufs)} · live Program A K starts with playback`;
+    } else {
+      els.spillAnalysis.textContent = 'Select an Audio file for Program A.';
+    }
+    updateReadouts();
+    refreshTransportState();
+    updateStatus();
+    if (wasPlaying && isProgramReady() && isSceneConfigured() && isAmbientConfigured()) await startBoth();
+  }
+
+  function updateDemoContentOption(slotKey) {
+    const slot = state.demoContentSlots[slotKey];
+    const option = els.cabinProgramSelect.querySelector(`option[value="${slotKey}"]`);
+    if (!option) return;
+    option.disabled = !slot;
+    option.textContent = slot
+      ? `${slotKey === 'music' ? 'Music demo' : 'Voice / narration'} · ${slot.file.name}`
+      : `${slotKey === 'music' ? 'Music demo' : 'Voice / narration'} · not loaded`;
+  }
+
+  async function selectDemoContent(slotKey) {
+    if (slotKey === 'builtin') {
+      await setSpillSourceMode('builtin');
+      els.cabinProgramSelect.value = 'builtin';
+      return;
+    }
+    const slot = state.demoContentSlots[slotKey];
+    if (!slot) return;
+    const wasPlaying = state.playing;
+    if (wasPlaying) stopBoth(false);
+    rememberProgramGain();
+    state.spillSourceMode = 'file';
+    // EN: Each curated file keeps its own static trim at the shared pre-protection reference plane.
+    state.programReferenceTrimBySource.file = slot.referenceTrimDb;
+    applyProgramGainForMode('file');
+    state.spillBuffer = slot.buffer;
+    state.spillSourceLufs = slot.lufs;
+    els.spillFileName.textContent = slot.file.name;
+    els.spillSourceBuiltin.classList.remove('active');
+    els.spillSourceFile.classList.add('active');
+    updateProgramSourcePresentation();
+    els.spillAnalysis.textContent = `Source K/LUFS-style estimate: ${formatDb(slot.lufs)} · duration ${slot.buffer.duration.toFixed(1)} s`;
+    els.spillState.textContent = 'ready';
+    els.cabinProgramSelect.value = slotKey;
+    updateReadouts();
+    refreshTransportState();
+    updateStatus();
+    if (wasPlaying && isProgramReady() && isSceneConfigured() && isAmbientConfigured()) await startBoth();
+  }
+
+  async function loadDemoContentSlot(file, slotKey) {
+    if (!file) return;
+    await resumeAudio();
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = await state.audioContext.decodeAudioData(arrayBuffer.slice(0));
+    const nameEl = slotKey === 'music' ? els.demoMusicFileName : els.demoVoiceFileName;
+    nameEl.textContent = 'Analysing…';
+    const lufs = await analyseIntegratedKStyle(buffer);
+    const sourcePeakDb = getBufferSamplePeakDb(buffer);
+    const referenceTrimDb = Math.max(-24, Math.min(24, -3 - sourcePeakDb));
+    state.demoContentSlots[slotKey] = { file, buffer, lufs, sourcePeakDb, referenceTrimDb };
+    nameEl.textContent = `${file.name} · ${formatGain(referenceTrimDb)} → −3.0 dBFS peak`;
+    updateDemoContentOption(slotKey);
+    updateStatus();
+  }
+
+  function createProgramPreProtectionMonitor(inputNode) {
+    const ac = state.audioContext;
+    state.programPreAnalyser = ac.createAnalyser();
+    state.programPreAnalyser.fftSize = 4096;
+    state.programPreAnalyser.smoothingTimeConstant = 0;
+    state.programPreTimeData = new Float32Array(state.programPreAnalyser.fftSize);
+    inputNode.connect(state.programPreAnalyser);
+    state.programPreAnalyser.connect(state.meterSink);
+  }
+
+  function createProgramAKMeter(inputNode) {
+    const ac = state.audioContext;
+    state.programAKPre = ac.createBiquadFilter();
+    state.programAKPre.type = 'highshelf';
+    state.programAKPre.frequency.value = 1500;
+    state.programAKPre.gain.value = 4.0;
+    state.programAKHp = ac.createBiquadFilter();
+    state.programAKHp.type = 'highpass';
+    state.programAKHp.frequency.value = 60;
+    state.programAKHp.Q.value = 0.5;
+    state.programAAnalyser = ac.createAnalyser();
+    state.programAAnalyser.fftSize = 4096;
+    state.programAAnalyser.smoothingTimeConstant = 0;
+    state.programATimeData = new Float32Array(state.programAAnalyser.fftSize);
+    inputNode.connect(state.programAKPre);
+    state.programAKPre.connect(state.programAKHp);
+    state.programAKHp.connect(state.programAAnalyser);
+    state.programAAnalyser.connect(state.meterSink);
+  }
+
+  function createProgramABranch(sourceNode) {
+    const ac = state.audioContext;
+    state.programReferenceGainNode = ac.createGain();
+    state.programReferenceGainNode.gain.value = dbToGain(Number(els.programReferenceTrim.value));
+    state.spillGainNode = ac.createGain();
+    state.aContentMonitorGain = ac.createGain();
+    state.aContentMonitorGain.gain.value = getBranchAudible('spill') ? 1 : 0;
+
+    // EN: Content reference level is before the listener split; A→B transfer remains a pure transfer control.
+    sourceNode.connect(state.programReferenceGainNode);
+    createProgramPreProtectionMonitor(state.programReferenceGainNode);
+    state.programReferenceGainNode.connect(state.programProtection.input);
+    state.programProtection.output.connect(state.spillGainNode);
+    state.spillGainNode.connect(state.mixBus);
+    state.programProtection.output.connect(state.aContentMonitorGain);
+    state.aContentMonitorGain.connect(state.aMonitorMixBus);
+    createProgramAKMeter(state.programProtection.output);
+    createBranchVisualMeter('spill', state.spillGainNode);
+  }
+
+  function createProceduralSpillSource(startAt) {
+    const program = createProgramSource(state.audioContext);
+    // Keep the synth's internal balance fixed; Content reference level is the host-lab calibration trim.
+    program.setParams({ master: -14, bell: -10, treble: 0, transpose: 24, contentTranspose: 0, bass: -13, sub: -16, reverb: 0 });
+    createProgramABranch(program.output);
+    program.start(startAt);
+    state.programSynth = program;
+    return program;
+  }
+
+  function createLoopingSource(buffer, branch, startAt) {
+    const ac = state.audioContext;
+    const src = ac.createBufferSource();
+    src.buffer = buffer;
+    src.loop = true;
+
+    const gain = ac.createGain();
+    if (branch === 'spill') state.spillGainNode = gain;
+    else if (branch === 'scene') state.sceneGainNode = gain;
+    else state.ambientGainNode = gain;
+
+    if (branch === 'spill') {
+      // EN: File and procedural Program A share the exact same pre-transfer level and K-meter path.
+      createProgramABranch(src);
+    } else {
+      src.connect(gain);
+      gain.connect(state.mixBus);
+      // EN: Scene and Ambient are shared unchanged by both virtual listeners.
+      gain.connect(state.aMonitorMixBus);
+      createBranchVisualMeter(branch, gain);
+    }
+    src.start(startAt, 0);
+    return src;
+  }
+
+  async function startBoth() {
+    await resumeAudio();
+    els.startBoth.disabled = true;
+    els.startBoth.textContent = 'Starting…';
+    if (state.sceneSourceMode === 'pink') await ensurePinkSceneReady();
+    if (state.sceneSourceMode === 'brown') await ensureBrownSceneReady();
+    if (state.ambientSourceMode === 'brown') await ensureAmbientReady();
+    const activeSceneBuffer = getActiveSceneBuffer();
+    const activeAmbientBuffer = getActiveAmbientBuffer();
+    if (!isProgramReady() || !activeSceneBuffer || !activeAmbientBuffer) {
+      refreshTransportState();
+      return;
+    }
+    stopBoth(false);
+    ensureMixGraph();
+    state.transportFading = false;
+    const transportGain = state.transportFadeGainNode?.gain;
+    if (transportGain) {
+      const now = state.audioContext.currentTime;
+      transportGain.cancelScheduledValues(now);
+      transportGain.setValueAtTime(0, now);
+    }
+    try {
+      state.programProtection = await createLowBandProtectionChain(state.audioContext, {
+        onMeter: (stats) => {
+          state.protectionStats = stats;
+          updateProtectionUi();
+          els.protectionStatus.textContent =
+            `Protection: ${stats.ready ? "active" : "buffering"} · effective ceiling ${effectiveProtectionCeilingDb().toFixed(1)} dBFS · reduction −${stats.reductionDb.toFixed(1)} dB`;
+        },
+      });
+      configureProtection();
+      els.protectionStatus.textContent = "Protection: starting Worklet…";
+    } catch (error) {
+      els.protectionStatus.textContent = "Protection unavailable — Program A not started.";
+      els.status.textContent = "Program A protection failed: " + error.message;
+      refreshTransportState();
+      return;
+    }
+
+    const startAt = state.audioContext.currentTime + 0.08;
+    state.spillSource = state.spillSourceMode === 'builtin'
+      ? createProceduralSpillSource(startAt)
+      : createLoopingSource(state.spillBuffer, 'spill', startAt);
+    state.sceneSource = createLoopingSource(activeSceneBuffer, 'scene', startAt);
+    state.ambientSource = createLoopingSource(activeAmbientBuffer, 'ambient', startAt);
+    state.playing = true;
+    state.sumEnergyHistory = [];
+    state.programAEnergyHistory = [];
+    state.programAK3s = null;
+    state.scopeHistory = [];
+    state.lastHistorySampleMs = 0;
+    state.lastVisualMeterUpdateMs = performance.now();
+    state.lastSumVisualMeterUpdateMs = state.lastVisualMeterUpdateMs;
+    updateBranchGains();
+    if (transportGain) {
+      const now = state.audioContext.currentTime;
+      transportGain.linearRampToValueAtTime(1, now + 1);
+    }
+    refreshTransportState();
+    startAnimation();
+    updateStatus();
+  }
+
+  function stopBothFaded() {
+    if (!state.playing || state.transportFading || !state.transportFadeGainNode || !state.audioContext) {
+      if (state.playing) stopBoth(true);
+      return;
+    }
+    state.transportFading = true;
+    els.startBoth.disabled = true;
+    const now = state.audioContext.currentTime;
+    const gain = state.transportFadeGainNode.gain;
+    gain.cancelScheduledValues(now);
+    gain.setValueAtTime(gain.value, now);
+    gain.linearRampToValueAtTime(0, now + 1);
+    window.setTimeout(() => {
+      if (state.transportFading) stopBoth(true);
+    }, 1050);
+  }
+
+  function stopBoth(updateUi = true) {
+    for (const key of ['spillSource', 'sceneSource', 'ambientSource']) {
+      const src = state[key];
+      if (src) {
+        try { src.stop(); } catch (_) {}
+        try { src.disconnect(); } catch (_) {}
+        state[key] = null;
+      }
+    }
+    state.programSynth = null;
+    state.programProtection?.dispose();
+    state.programProtection = null;
+    state.protectionStats = null;
+    for (const key of ['programReferenceGainNode', 'spillGainNode', 'sceneGainNode', 'ambientGainNode', 'aContentMonitorGain', 'programPreAnalyser', 'programAKPre', 'programAKHp', 'programAAnalyser', 'monitorPostAnalyser']) {
+      const node = state[key];
+      if (node) {
+        try { node.disconnect(); } catch (_) {}
+        state[key] = null;
+      }
+    }
+    for (const branch of ['spill', 'scene', 'ambient']) {
+      const meter = state.branchMeters[branch];
+      if (meter) {
+        try { meter.analyser.disconnect(); } catch (_) {}
+        state.branchMeters[branch] = null;
+      }
+    }
+    state.programATimeData = null;
+    state.programPreTimeData = null;
+    state.programPreEnergyHistory = [];
+    state.programPrePeakHistory = [];
+    state.programPreLastUpdateMs = 0;
+    state.monitorPostTimeData = null;
+    state.monitorPostEnergyHistory = [];
+    state.monitorPostPeakHistory = [];
+    state.monitorPostLastUpdateMs = 0;
+    state.programAEnergyHistory = [];
+    state.programAK3s = null;
+    state.playing = false;
+    state.transportFading = false;
+    if (updateUi) {
+      refreshTransportState();
+      updateStatus();
+    }
+  }
+
+  function startAnimation() {
+    if (state.animationId !== null) return;
+    const loop = () => {
+      state.animationId = requestAnimationFrame(loop);
+      updateProgramPreProtectionMonitor();
+      updateMonitorPostGainMonitor();
+      updateProgramAK();
+      updateLiveSum();
+      updateBranchVisualMeters();
+      drawCabinLevelTest();
+      drawScope();
+    };
+    loop();
+  }
+
+  function updateProgramPreProtectionMonitor() {
+    if (!state.playing || !state.programPreAnalyser || !state.programPreTimeData) return;
+    state.programPreAnalyser.getFloatTimeDomainData(state.programPreTimeData);
+    let energy = 0, peak = 0;
+    for (const sample of state.programPreTimeData) {
+      energy += sample * sample;
+      peak = Math.max(peak, Math.abs(sample));
+    }
+    energy /= state.programPreTimeData.length;
+    const now = performance.now();
+    state.programPreEnergyHistory.push({ t: now, energy });
+    state.programPrePeakHistory.push({ t: now, peak });
+    while (state.programPreEnergyHistory.length && state.programPreEnergyHistory[0].t < now - 400) state.programPreEnergyHistory.shift();
+    while (state.programPrePeakHistory.length && state.programPrePeakHistory[0].t < now - 1000) state.programPrePeakHistory.shift();
+    if (now - state.programPreLastUpdateMs < 100) return;
+    state.programPreLastUpdateMs = now;
+    const rmsDb = energyToDb(average(state.programPreEnergyHistory.map(item => item.energy)));
+    const peakDb = 20 * Math.log10(Math.max(1e-12, ...state.programPrePeakHistory.map(item => item.peak)));
+    els.programPreMonitor.textContent = "Content pre-protection: RMS " + rmsDb.toFixed(1) + " dBFS · 1 s peak " + peakDb.toFixed(1) + " dBFS";
+    els.programPreMonitor.classList.toggle('warning', peakDb > -3);
+  }
+
+  function updateMonitorPostGainMonitor() {
+    if (!state.playing || !state.monitorPostAnalyser || !state.monitorPostTimeData) return;
+    state.monitorPostAnalyser.getFloatTimeDomainData(state.monitorPostTimeData);
+    let energy = 0, peak = 0;
+    for (const sample of state.monitorPostTimeData) {
+      energy += sample * sample;
+      peak = Math.max(peak, Math.abs(sample));
+    }
+    energy /= state.monitorPostTimeData.length;
+    const now = performance.now();
+    state.monitorPostEnergyHistory.push({ t: now, energy });
+    state.monitorPostPeakHistory.push({ t: now, peak });
+    while (state.monitorPostEnergyHistory.length && state.monitorPostEnergyHistory[0].t < now - 400) state.monitorPostEnergyHistory.shift();
+    while (state.monitorPostPeakHistory.length && state.monitorPostPeakHistory[0].t < now - 1000) state.monitorPostPeakHistory.shift();
+    if (now - state.monitorPostLastUpdateMs < 100) return;
+    state.monitorPostLastUpdateMs = now;
+    const rmsDb = energyToDb(average(state.monitorPostEnergyHistory.map(item => item.energy)));
+    const peakDb = 20 * Math.log10(Math.max(1e-12, ...state.monitorPostPeakHistory.map(item => item.peak)));
+    els.monitorPostMonitor.textContent = "Demo VOL post-gain: RMS " + rmsDb.toFixed(1) + " dBFS · 1 s peak " + peakDb.toFixed(1) + " dBFS";
+    els.monitorPostMonitor.classList.toggle('warning', peakDb > -3);
+  }
+
+  function updateProgramAK() {
+    if (!state.playing || !state.programAAnalyser || !state.programATimeData) return;
+    state.programAAnalyser.getFloatTimeDomainData(state.programATimeData);
+    let energy = 0;
+    for (const sample of state.programATimeData) energy += sample * sample;
+    energy /= state.programATimeData.length;
+    const now = performance.now();
+    state.programAEnergyHistory.push({ t: now, energy });
+    while (state.programAEnergyHistory.length && state.programAEnergyHistory[0].t < now - 3000) {
+      state.programAEnergyHistory.shift();
+    }
+    const mean3s = average(state.programAEnergyHistory.map(item => item.energy));
+    state.programAK3s = Number.isFinite(mean3s) ? energyToDb(mean3s) : null;
+    els.spillAnalysis.textContent = Number.isFinite(state.programAK3s)
+      ? `Program A K, 3 s: ${state.programAK3s.toFixed(1)} dB · reference trim ${formatGain(els.programReferenceTrim.value)}`
+      : 'Program A K, 3 s: --';
+    updateReadouts();
+  }
+
+  function updateLiveSum() {
+    if (!state.playing || !state.sumAnalyser || !state.sumTimeData) {
+      els.sumLufs.textContent = '--';
+      return;
+    }
+
+    state.sumAnalyser.getFloatTimeDomainData(state.sumTimeData);
+    let energy = 0;
+    for (let i = 0; i < state.sumTimeData.length; i++) {
+      const x = state.sumTimeData[i];
+      energy += x * x;
+    }
+    energy /= state.sumTimeData.length;
+
+    const now = performance.now();
+    state.sumEnergyHistory.push({ t: now, energy });
+    while (state.sumEnergyHistory.length && state.sumEnergyHistory[0].t < now - 3000) {
+      state.sumEnergyHistory.shift();
+    }
+
+    const mean3s = average(state.sumEnergyHistory.map(x => x.energy));
+    const sumDb = Number.isFinite(mean3s) ? energyToDb(mean3s) : null;
+    els.sumLufs.textContent = formatDb(sumDb);
+
+    // EN: The cabin test field uses a separate fast-attack / slow-release view of the existing SUM meter.
+    // EN: This visual envelope is intentionally independent from the 3 s numeric readout above.
+    const instantDb = energyToDb(energy);
+    const visualMeter = state.sumVisualMeter;
+    const elapsedMs = Math.max(1, now - state.lastSumVisualMeterUpdateMs);
+    state.lastSumVisualMeterUpdateMs = now;
+    const timeConstantMs = instantDb > visualMeter.smoothedDb ? 110 : 350;
+    const alpha = 1 - Math.exp(-elapsedMs / timeConstantMs);
+    visualMeter.smoothedDb += alpha * (instantDb - visualMeter.smoothedDb);
+    visualMeter.hasSignal = Number.isFinite(instantDb);
+
+    if (now - state.lastHistorySampleMs >= 100) {
+      state.lastHistorySampleMs = now;
+      const branches = getAllVisualBranchStates();
+      const bContent = branches.spill.liveRmsDb;
+      const aContent = Number.isFinite(bContent) ? bContent - Number(els.spillGain.value) : null;
+      const scene = branches.scene.liveRmsDb;
+      const ambient = branches.ambient.liveRmsDb;
+      const total = (...levels) => levels.every(Number.isFinite) ? energyToDb(levels.reduce((sum, level) => sum + dbToEnergy(level), 0)) : null;
+      state.scopeHistory.push({ t: now, aTotal: total(aContent, scene, ambient), bTotal: total(bContent, scene, ambient), scene, ambient });
+      while (state.scopeHistory.length && state.scopeHistory[0].t < now - 3000) state.scopeHistory.shift();
+    }
+  }
+
+  function updateBranchVisualMeters() {
+    if (!state.playing) return;
+    const now = performance.now();
+    const elapsedMs = Math.max(1, now - state.lastVisualMeterUpdateMs);
+    state.lastVisualMeterUpdateMs = now;
+
+    for (const branch of ['spill', 'scene', 'ambient']) {
+      const meter = state.branchMeters[branch];
+      if (!meter) continue;
+      meter.analyser.getFloatTimeDomainData(meter.timeData);
+      let energy = 0;
+      for (const sample of meter.timeData) energy += sample * sample;
+      const instantDb = energyToDb(energy / meter.timeData.length);
+      const timeConstantMs = instantDb > meter.smoothedDb ? 110 : 350;
+      const alpha = 1 - Math.exp(-elapsedMs / timeConstantMs);
+      meter.smoothedDb += alpha * (instantDb - meter.smoothedDb);
+      meter.hasSignal = Number.isFinite(instantDb);
+    }
+  }
+
+  function drawCabinLevelTest() {
+    const ctx = cabinTestCtx;
+    const canvas = els.cabinTest;
+    const w = canvas.width;
+    const h = canvas.height;
+    const branches = getAllVisualBranchStates();
+    const minDb = -42;
+    const maxDb = 0;
+    const toVisualLevel = (levelDb) => Number.isFinite(levelDb) && state.playing
+      ? Math.max(0, Math.min(1, (levelDb - minDb) / (maxDb - minDb)))
+      : 0;
+    const ambientLevel = toVisualLevel(branches.ambient.liveRmsDb);
+    const headrestLevel = toVisualLevel(branches.spill.liveRmsDb);
+    const sceneLevel = toVisualLevel(branches.scene.liveRmsDb);
+
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, w, h);
+
+    // EN: Crop a shallow front section at the dashboard while retaining the original acoustic reference plane.
+    const cabinW = w * 0.46;
+    const fullCabinY = h * 0.09;
+    const fullCabinH = h * 0.82;
+    const frontCrop = 0.22;
+    const cabinH = fullCabinH * (1 - frontCrop);
+    const cabinX = (w - cabinW) / 2;
+    const cabinY = fullCabinY + fullCabinH * frontCrop;
+    const headrestX = cabinX + cabinW * 0.36;
+    const headrestY = fullCabinY + fullCabinH * 0.58;
+    state.cabinGeometry = { cabinX, cabinY, cabinW, cabinH, fullCabinY, fullCabinH, headrestX, headrestY, listenerBX: cabinX + cabinW * 0.64 };
+
+    // EN: The dashboard is a visual boundary; its crop does not alter acoustic coordinates.
+    const dashboardY = cabinY - 34;
+    ctx.fillStyle = '#121b1f';
+    ctx.beginPath();
+    ctx.roundRect(cabinX, dashboardY, cabinW, 28, 8);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(159,208,255,.24)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // EN: Total SPL tiles use the linear-energy field model; source arcs remain explanatory overlays.
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(cabinX, cabinY, cabinW, cabinH);
+    ctx.clip();
+    ctx.fillStyle = '#070909';
+    ctx.fillRect(cabinX, cabinY, cabinW, cabinH);
+    const tileCols = 14, tileRows = 8;
+    const tileW = cabinW / tileCols, tileH = cabinH / tileRows;
+    for (let row = 0; row < tileRows; row++) for (let col = 0; col < tileCols; col++) {
+      const totalSpl = getCabinProbeLevels(cabinX + (col + .5) * tileW, cabinY + (row + .5) * tileH).total + 80;
+      const v = Math.pow(Math.max(0, Math.min(1, (totalSpl - 38) / 42)), .65) * .38;
+      ctx.fillStyle = `rgba(64, 166, 157, ${v})`;
+      ctx.beginPath(); ctx.arc(cabinX + (col + .5) * tileW, cabinY + (row + .5) * tileH, Math.min(tileW, tileH) * (.30 + .18 * v / .38), 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.strokeStyle = `rgba(126, 214, 202, ${.16 + ambientLevel * .62})`;
+    ctx.lineWidth = 2.2;
+    for (let ly = cabinY + 14; ly < cabinY + cabinH; ly += 18) { ctx.beginPath(); ctx.moveTo(cabinX, ly); ctx.lineTo(cabinX + cabinW, ly); ctx.stroke(); }
+    // EN: A front source placed well outside the cabin yields broad, nearly planar scene-bed arcs.
+    const sceneCenterX = cabinX + cabinW / 2;
+    const sceneCenterY = cabinY - cabinH * 2;
+    const sceneAlpha = 0.025 + sceneLevel * 0.54;
+    for (let i = 0; i < 4; i++) {
+      ctx.beginPath();
+      ctx.arc(sceneCenterX, sceneCenterY, cabinH * (1.82 + i * 0.30), 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(58, 230, 210, ${sceneAlpha * (1 - i * 0.16)})`;
+      ctx.lineWidth = 2.4;
+      ctx.stroke();
+    }
+    ctx.strokeStyle = '#3a3a3a';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(cabinX, cabinY, cabinW, cabinH);
+    ctx.fillStyle = '#777';
+    ctx.font = '12px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('FRONT', cabinX + cabinW / 2, cabinY - 10);
+    ctx.fillText('▲', cabinX + cabinW / 2, cabinY - 27);
+
+    const drawListener = (x, active, activeColor) => {
+      ctx.fillStyle = 'rgba(22, 24, 24, 0.48)';
+      ctx.beginPath(); ctx.roundRect(x - 70, headrestY - 90, 140, 180, 18); ctx.fill();
+      ctx.strokeStyle = 'rgba(170, 190, 188, 0.48)';
+      ctx.beginPath(); ctx.roundRect(x - 70, headrestY - 90, 140, 180, 18); ctx.stroke();
+      if (active) { ctx.shadowColor = activeColor; ctx.shadowBlur = 12; }
+      ctx.fillStyle = active ? activeColor : 'rgba(210, 220, 218, 0.58)';
+      ctx.beginPath();
+      ctx.ellipse(x, headrestY, 15, 19, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = active ? activeColor : 'rgba(232, 240, 238, 0.62)';
+      ctx.beginPath();
+      ctx.ellipse(x, headrestY - 18, 4, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+    };
+    drawListener(headrestX, state.monitorListener === 'A', '#f2c36b');
+    drawListener(cabinX + cabinW * 0.64, state.monitorListener === 'B', '#ff9f2a');
+
+    // EN: Fixed circular arcs describe the illustrative A-headrest transfer shape, not moving contours.
+    ctx.save();
+    ctx.translate(headrestX, headrestY + 51);
+    const arcAlpha = 0.06 + headrestLevel * 0.88;
+    for (let i = 0; i < 5; i++) {
+      const t = i / 4;
+      ctx.beginPath();
+      ctx.arc(0, 0, 36 + i * 43, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(58, 230, 210, ${arcAlpha * (1 - t * 0.52)})`;
+      ctx.lineWidth = 4.4 - i * 0.62;
+      ctx.stroke();
+    }
+    ctx.restore();
+    ctx.restore();
+
+    ctx.fillStyle = `rgba(58, 230, 210, ${0.12 + headrestLevel * 0.82})`;
+    ctx.beginPath(); ctx.roundRect(headrestX - 28, headrestY + 42, 56, 10, 5); ctx.fill();
+    ctx.fillStyle = '#89f4e6';
+    ctx.font = '12px Arial';
+    // EN: Keep the headrest label on Listener A's centreline, directly behind the headrest.
+    ctx.textAlign = 'center';
+    ctx.fillText('A headrest', headrestX, headrestY + 107);
+    ctx.textAlign = 'start';
+
+    const probe = state.cabinProbe;
+    if (probe && probe.x >= cabinX && probe.x <= cabinX + cabinW && probe.y >= cabinY && probe.y <= cabinY + cabinH) {
+      const levels = getCabinProbeLevels(probe.x, probe.y);
+      ctx.strokeStyle = '#d8fffa';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(probe.x - 8, probe.y); ctx.lineTo(probe.x + 8, probe.y); ctx.moveTo(probe.x, probe.y - 8); ctx.lineTo(probe.x, probe.y + 8); ctx.stroke();
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.84)'; ctx.fillRect(probe.x + 12, probe.y - 48, 184, 58);
+      ctx.fillStyle = '#d8fffa'; ctx.font = '11px Arial';
+      ctx.fillText(`Ambient ${levels.ambient.toFixed(1)} · Scene ${levels.scene.toFixed(1)}`, probe.x + 18, probe.y - 29);
+      ctx.fillText(`A headrest ${levels.headrest.toFixed(1)} · Total ${levels.total.toFixed(1)} dB est.`, probe.x + 18, probe.y - 13);
+    }
+
+    const monitorAContent = branches.spill.liveRmsDb == null ? null : branches.spill.liveRmsDb - Number(els.spillGain.value);
+    const monitorContent = state.monitorListener === 'A' ? monitorAContent : branches.spill.liveRmsDb;
+    const monitorLabel = state.monitorListener === 'A' ? 'A intended content' : 'A content at B';
+    els.cabinTestReadout.textContent = state.playing && Number.isFinite(monitorContent)
+      ? `Listening as ${state.monitorListener} · ${monitorLabel} ${monitorContent.toFixed(1)} dB · Scene ${branches.scene.liveRmsDb.toFixed(1)} dB · Ambient ${branches.ambient.liveRmsDb.toFixed(1)} dB`
+      : 'Stopped · --';
+  }
+
+  function getCabinProbeLevels(x, y) {
+    const g = state.cabinGeometry;
+    const branches = getAllVisualBranchStates();
+    const ambient = branches.ambient.liveRmsDb ?? -100;
+    const sceneBase = branches.scene.liveRmsDb ?? -100;
+    const spillAtB = branches.spill.liveRmsDb ?? -100;
+    // EN: Preserve the original acoustic front-to-back reference when the dashboard crops the visual cabin.
+    const rear = Math.max(0, Math.min(1, (y - g.fullCabinY) / g.fullCabinH));
+    const scene = sceneBase - 6 * rear;
+    const r = Math.hypot(x - g.headrestX, y - g.headrestY);
+    const r0 = g.cabinW * 0.12;
+    const rB = Math.hypot(g.listenerBX - g.headrestX, 0);
+    const u = Math.max(0, Math.min(1, (r - r0) / (rB - r0)));
+    const smooth = 6 * u ** 5 - 15 * u ** 4 + 10 * u ** 3;
+    const tailU = Math.max(0, Math.min(1, (r - rB) / (g.cabinH * 0.55)));
+    const tail = 6 * tailU ** 5 - 15 * tailU ** 4 + 10 * tailU ** 3;
+    const headrest = spillAtB + 15 - 15 * smooth - 3 * tail;
+    const total = energyToDb(dbToEnergy(ambient) + dbToEnergy(scene) + dbToEnergy(headrest));
+    return { ambient, scene, headrest, total };
+  }
+
+  function drawScope() {
+    const ctx = scopeCtx;
+    const canvas = els.scope;
+    const w = canvas.width;
+    const h = canvas.height;
+    const minDb = -42;
+    const maxDb = 0;
+    const now = performance.now();
+
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = 'rgba(0,0,0,.48)';
+    ctx.fillRect(0, 0, w, h);
+
+    const padT = 8;
+    const padB = 20;
+    const plotH = h - padT - padB;
+    const toY = value => padT + (maxDb - Math.max(minDb, Math.min(maxDb, value))) / (maxDb - minDb) * plotH;
+
+    // EN: A/B sit approximately below their cabin listeners; shared sources remain secondary references.
+    const series = [
+      { key: 'aTotal', color: (state.protectionStats?.reductionDb || 0) > .15 ? '#ff6b6b' : '#f2c36b', label: 'A', listener: 'A', x: w * .43, barW: 44, tailW: 125 },
+      { key: 'bTotal', color: '#ff9f2a', label: 'B', listener: 'B', x: w * .56, barW: 44, tailW: 125 },
+      { key: 'scene', color: '#9fd0ff', label: 'S', listener: null, x: w * .74, barW: 26, tailW: 92 },
+      { key: 'ambient', color: '#c7b5ff', label: 'C', listener: null, x: w * .82, barW: 26, tailW: 92 }
+    ];
+
+    for (const spec of series) {
+      let previous = null;
+      for (const item of state.scopeHistory) {
+        const value = item[spec.key];
+        if (!Number.isFinite(value)) continue;
+        const age = Math.max(0, Math.min(3, (now - item.t) / 1000));
+        const x = spec.x - 4 - (age / 3) * spec.tailW;
+        const y = toY(value);
+        if (previous) {
+          ctx.strokeStyle = spec.color;
+          const emphasis = spec.listener ? (state.monitorListener === spec.listener ? 1 : .55) : .72;
+          ctx.globalAlpha = Math.max(.05, 1 - age / 3) * emphasis;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(previous.x, previous.y);
+          ctx.lineTo(x, y);
+          ctx.stroke();
+        }
+        previous = { x, y };
+      }
+    }
+    ctx.globalAlpha = 1;
+
+    const latest = state.scopeHistory[state.scopeHistory.length - 1];
+    if (!latest) return;
+
+    for (const spec of series) {
+      const value = latest[spec.key];
+      if (!Number.isFinite(value)) continue;
+      const stepped = Math.round(value / 3) * 3;
+      const x = spec.x - spec.barW / 2;
+      const bottom = padT + plotH;
+      const segmentStep = plotH / 20;
+      ctx.fillStyle = spec.color;
+      for (let db = minDb; db <= stepped; db += 3) {
+        const y = toY(db);
+        const emphasis = spec.listener ? (state.monitorListener === spec.listener ? 1 : .58) : .74;
+        ctx.globalAlpha = .82 * emphasis;
+        ctx.fillRect(x, y - segmentStep + 1, spec.barW, Math.max(2, segmentStep - 2));
+      }
+      ctx.globalAlpha = spec.listener ? (state.monitorListener === spec.listener ? 1 : .64) : .78;
+      ctx.fillStyle = spec.color;
+      ctx.font = spec.listener ? '18px Arial' : '15px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(spec.label, spec.x, bottom + 16);
+    }
+    ctx.globalAlpha = 1;
+    ctx.textAlign = 'start';
+  }
+
+  function updateStatus() {
+    const branches = getAllVisualBranchStates();
+    const spillRendered = branches.spill.configuredRenderedDb;
+    const sceneRendered = branches.scene.configuredRenderedDb;
+    const ambientRendered = branches.ambient.configuredRenderedDb;
+    const delta = Number.isFinite(spillRendered) && Number.isFinite(sceneRendered)
+      ? sceneRendered - spillRendered
+      : null;
+
+    els.status.textContent = [
+      `STATE: ${state.playing ? 'PLAYING / LOOPING' : 'STOPPED'}`,
+      `A source (${state.spillSourceMode === 'builtin' ? 'Built-in procedural music' : 'Audio file'}) | Content reference trim ${formatGain(els.programReferenceTrim.value)} | Program A K ${formatDb(getBranchSourceEstimate('spill'), ' dB')}`,
+      `A → B transfer ${Number(els.spillGain.value).toFixed(1)} dB | A content at B ${formatDb(spillRendered, ' dB')}`,
+      `Scene source (${state.sceneSourceMode === 'pink' ? 'Pink noise' : state.sceneSourceMode === 'brown' ? 'Brown noise 50 Hz HP' : 'File'}): ${formatDb(getActiveSceneSourceLufs())}  | gain ${Number(els.sceneGain.value).toFixed(1)} dB  | rendered ${formatDb(sceneRendered)}`, 
+      `Ambient source (${state.ambientSourceMode === 'file' ? 'File' : 'Brown 20 Hz HP'}): ${formatDb(getActiveAmbientSourceLufs())}  | gain ${Number(els.ambientGain.value).toFixed(1)} dB  | rendered ${formatDb(ambientRendered)}`,
+      `Scene − A content at B: ${formatSigned(delta)}`,
+      `Monitor listener: ${state.monitorListener} · output gain ${Number(els.monitorGain.value).toFixed(1)} dB (post measurement)`,
+      '',
+      'Suggested experiment: set Ambient first, then keep Spill fixed and adjust Scene until the spill reaches the desired salience / disturbance threshold.'
+    ].join('\n');
+  }
+
+  els.spillSourceBuiltin.addEventListener('click', () => { setSpillSourceMode('builtin'); });
+  els.spillSourceFile.addEventListener('click', () => { setSpillSourceMode('file'); });
+
+  els.demoMusicFile.addEventListener('change', async () => { await loadDemoContentSlot(els.demoMusicFile.files?.[0], 'music'); });
+  els.demoVoiceFile.addEventListener('change', async () => { await loadDemoContentSlot(els.demoVoiceFile.files?.[0], 'voice'); });
+  els.cabinProgramSelect.addEventListener('change', async () => { await selectDemoContent(els.cabinProgramSelect.value); });
+
+  els.spillFile.addEventListener('change', async () => {
+    const file = els.spillFile.files && els.spillFile.files[0];
+    if (!file) return;
+    try { await decodeSelectedFile(file, 'spill'); }
+    catch (err) { els.spillState.textContent = 'error'; els.status.textContent = `Spill file error: ${err.message}`; }
+  });
+
+  els.sceneSourceFile.addEventListener('click', () => { setSceneSourceMode('file'); });
+  els.sceneSourcePink.addEventListener('click', () => { setSceneSourceMode('pink'); });
+  els.sceneSourceBrown.addEventListener('click', () => { setSceneSourceMode('brown'); });
+
+  els.ambientSourceBrown.addEventListener('click', () => { setAmbientSourceMode('brown'); });
+  els.ambientSourceFile.addEventListener('click', () => { setAmbientSourceMode('file'); });
+  document.querySelectorAll('[data-ambient-preset]').forEach(button => button.addEventListener('click', () => setAmbientPreset(button.dataset.ambientPreset)));
+
+  els.sceneFile.addEventListener('change', async () => {
+    const file = els.sceneFile.files && els.sceneFile.files[0];
+    if (!file) return;
+    try { await decodeSelectedFile(file, 'scene'); }
+    catch (err) { els.sceneState.textContent = 'error'; els.status.textContent = `Scene file error: ${err.message}`; }
+  });
+
+  els.ambientFile.addEventListener('change', async () => {
+    const file = els.ambientFile.files && els.ambientFile.files[0];
+    if (!file) return;
+    try { await decodeSelectedFile(file, 'ambient'); }
+    catch (err) { els.ambientState.textContent = 'error'; els.status.textContent = `Ambient file error: ${err.message}`; }
+  });
+
+  els.protectionCeiling.addEventListener('input', () => {
+    const ceilingDb = Number(els.protectionCeiling.value);
+    els.protectionCeilingValue.textContent = `${ceilingDb.toFixed(1)} dBFS`;
+    configureProtection();
+  });
+  document.querySelectorAll('[data-feelness]').forEach(button => {
+    button.addEventListener('click', () => {
+      state.protectionFeelness = button.dataset.feelness;
+      configureProtection();
+      updateProtectionUi();
+      updateStatus();
+    });
+  });
+  els.programReferenceTrim.addEventListener('input', () => {
+    state.programReferenceTrimBySource[state.spillSourceMode] = Number(els.programReferenceTrim.value);
+    updateControls();
+    updateStatus();
+  });
+  els.spillGain.addEventListener('input', () => { updateControls(); updateStatus(); });
+  els.sceneGain.addEventListener('input', () => { updateControls(); updateStatus(); });
+  els.ambientGain.addEventListener('input', () => { updateControls(); updateStatus(); });
+  document.querySelectorAll('[data-cabin-speed]').forEach(button => button.addEventListener('click', () => setCabinNoiseCondition(Number(button.dataset.cabinSpeed))));
+  els.monitorGain.addEventListener('input', () => { updateControls(); updateStatus(); });
+  els.demoVolUp.addEventListener('click', () => stepDemoVolume(6));
+  els.demoVolDown.addEventListener('click', () => stepDemoVolume(-6));
+  els.demoDuck.addEventListener('click', toggleDemoDuck);
+
+  els.spillMute.addEventListener('click', () => { state.spillMuted = !state.spillMuted; updateBranchGains(); });
+  els.sceneMute.addEventListener('click', () => { state.sceneMuted = !state.sceneMuted; updateBranchGains(); });
+  els.ambientMute.addEventListener('click', () => { state.ambientMuted = !state.ambientMuted; updateBranchGains(); });
+  els.spillSolo.addEventListener('click', () => { state.spillSolo = !state.spillSolo; updateBranchGains(); });
+  els.sceneSolo.addEventListener('click', () => { state.sceneSolo = !state.sceneSolo; updateBranchGains(); });
+  els.ambientSolo.addEventListener('click', () => { state.ambientSolo = !state.ambientSolo; updateBranchGains(); });
+
+  els.loadLocalDefault?.addEventListener('click', () => loadLocalProgram());
+  function updateViewModeButton() {
+    const demoMode = document.body.classList.contains('demoMode');
+    els.viewModeToggle.textContent = demoMode ? 'Demo content and settings' : 'Show demo only';
+    els.viewModeToggle.setAttribute('aria-pressed', demoMode ? 'true' : 'false');
+  }
+
+  els.viewModeToggle.addEventListener('click', () => {
+    document.body.classList.toggle('demoMode');
+    updateViewModeButton();
+  });
+  updateViewModeButton();
+
+  const toggleMix = () => { if (state.playing) stopBothFaded(); else if (!state.transportFading) startBoth(); };
+  els.startBoth.addEventListener('click', toggleMix);
+  els.stopBoth.addEventListener('click', () => stopBoth(true));
+  els.restartBoth.addEventListener('click', startBoth);
+  els.listenA.addEventListener('click', () => setMonitorListener('A'));
+  els.listenB.addEventListener('click', () => setMonitorListener('B'));
+  document.addEventListener('keydown', (event) => {
+    if (event.repeat) return;
+    const tag = document.activeElement && document.activeElement.tagName;
+    if (tag === 'INPUT' || tag === 'BUTTON' || tag === 'SELECT') return;
+    if (event.code === 'Space') {
+      event.preventDefault();
+      toggleMix();
+    } else if (event.key.toLowerCase() === 'm') {
+      event.preventDefault();
+      toggleDemoDuck();
+    }
+  });
+
+  els.cabinTest.addEventListener('pointermove', (event) => {
+    const rect = els.cabinTest.getBoundingClientRect();
+    state.cabinProbe = {
+      x: (event.clientX - rect.left) * els.cabinTest.width / rect.width,
+      y: (event.clientY - rect.top) * els.cabinTest.height / rect.height
+    };
+  });
+  els.cabinTest.addEventListener('pointerleave', () => { state.cabinProbe = null; });
+  els.cabinTest.addEventListener('click', (event) => {
+    const g = state.cabinGeometry;
+    if (!g) return;
+    const rect = els.cabinTest.getBoundingClientRect();
+    const x = (event.clientX - rect.left) * els.cabinTest.width / rect.width;
+    const y = (event.clientY - rect.top) * els.cabinTest.height / rect.height;
+    // EN: Seat hit areas select the existing monitor listener; no audio graph is rebuilt here.
+    if (Math.abs(x - g.headrestX) <= 70 && Math.abs(y - g.headrestY) <= 90) setMonitorListener('A');
+    else if (Math.abs(x - g.listenerBX) <= 70 && Math.abs(y - g.headrestY) <= 90) setMonitorListener('B');
+  });
+
+  els.spillFileName.textContent = 'No file selected';
+  els.spillAnalysis.textContent = 'Program A K, 3 s: -- · measured live after start';
+  updateProgramSourcePresentation();
+  setCabinNoiseCondition(0);
+  refreshTransportState();
+  updateStatus();
+  drawCabinLevelTest();
+  drawScope();
+</script>
+</body>
+</html>
