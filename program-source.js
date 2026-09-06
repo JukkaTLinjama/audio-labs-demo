@@ -5,6 +5,21 @@ import { BAR, STEP, TOTAL_BARS, MAIN_BARS, createScorePlan, createSeededRandom }
 import { applyPhrasing, getPerformedLoopDuration, getPerformedBarStarts } from './phrasing.js?v=2.0.1';
 import { createInstruments, COMMITTED_MIX } from './instruments.js?v=2.0.1';
 
+// EN: iOS may not expose FLAC files through audio/* MIME filtering, so allow the extension explicitly.
+function enableExplicitFlacFileSelection() {
+  document.querySelectorAll('input[type="file"][accept]').forEach(input => {
+    if (!input.accept.split(',').map(value => value.trim().toLowerCase()).includes('.flac')) {
+      input.accept = `${input.accept},.flac`;
+    }
+  });
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', enableExplicitFlacFileSelection, { once: true });
+} else {
+  enableExplicitFlacFileSelection();
+}
+
 export { COMMITTED_MIX };
 // EN: Engine-to-host reference established from committed offline renders; not a musical mix control.
 export const COMMITTED_NOMINAL_OUTPUT_DB=26;
