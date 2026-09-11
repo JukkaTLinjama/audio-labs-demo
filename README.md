@@ -8,7 +8,9 @@ Open the repository through GitHub Pages. The single published entry point is `i
 
 ## This release
 
-- Built-in procedural Bach BWV 846 is available immediately.
+- Built-in Program A uses the accepted **Procedural Music Lab v3.0** Bach BWV 846 engine.
+- Procedural v3.0 brings musical velocity phrasing, softened upper Bell/Treble notes, sparse treble trills, the fixed Logic-edited Sub part, short phrase timing inflections, a stronger final cadence ritardando, and one empty bar after the cadence.
+- The engine keeps its committed internal musical mix and **+26 dB engine-to-host output reference**. The Spill Demo then applies its existing Content reference level; the demo does not compensate the musical stem gains separately.
 - Visitors can load Music demo or Voice / narration files locally; files remain in their browser and are not uploaded.
 - Cabin-noise choices model 0, 50 and 100 km/h conditions with a one-second transition.
 - Listener A / B changes only the monitor route; it does not alter Program A, Scene or Ambient generation.
@@ -19,12 +21,30 @@ Open the repository through GitHub Pages. The single published entry point is `i
 ## Audio architecture
 
 ```text
-Program A → bass protection → Listener A / A→B transfer → Demo VOL → output
+Procedural v3.0 musical mix
+        → +26 dB engine-to-host reference
+        → Content reference level
+        → bass protection
+        → Listener A / A→B transfer
+        → Demo VOL
+        → output
+
 Scene ───────────────────────────────────────────────┘
 Cabin ambient ───────────────────────────────────────┘
 ```
 
-Program A protection is intentionally before listener transfer and Demo VOL. Scene and cabin ambient remain independent shared layers.
+Program A protection is intentionally before listener transfer and Demo VOL. Scene and cabin ambient remain independent shared layers. Updating the procedural source must not change these Spill Demo gain/protection stages.
+
+## Procedural runtime files
+
+The public repository carries release copies of:
+
+- `bach-program.js`
+- `phrasing.js`
+- `program-source.js`
+- `instruments.js`
+
+The development master remains `procedural-music-lab/` in `JukkaTLinjama/audio-labs`. For a demo release, copy the accepted engine files here and bump their module cache versions together.
 
 ## Files required at runtime
 
@@ -36,4 +56,4 @@ Program A protection is intentionally before listener transfer and Demo VOL. Sce
 
 ## Known limitation
 
-The demo requires a browser with Web Audio and AudioWorklet support. A protection fallback for older mobile browsers is still pending; see [TODO.md](TODO.md).
+The demo requires a browser with Web Audio and AudioWorklet support. A protection fallback for older mobile browsers is still pending; see `TODO.md`.
